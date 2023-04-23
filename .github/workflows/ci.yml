@@ -1,0 +1,25 @@
+name: Commit-CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+      
+    steps:
+      - name: run docker
+        run: docker run --rm strikef/swpp-ci
+        
+      - name: compile
+        run: |
+          cmake -GNinja -Bbuild
+          cmake --build build --target swpp-compiler
+        
+      - name: test
+        run: |
+          cd build
+          ctest
+      
+    
