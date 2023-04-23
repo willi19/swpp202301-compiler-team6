@@ -7,10 +7,11 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-      
+    container: strikef/swpp-ci
+    
     steps:
-      - name: run docker
-        run: docker run --rm strikef/swpp-ci
+      - name: Checkout
+        run: actions/checkout@v2
         
       - name: compile
         run: |
