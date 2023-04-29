@@ -26,10 +26,10 @@ jobs:
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
-          password: ${{ secrets.TOKEN }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: build and publish
         uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
         with:
           push: true
-          tags: docker.pkg.github.com/willi19/swpp202101-team6/swpp202301:latest
+          tags: docker.pkg.github.com/willi19/swpp202301-team6/swpp202301:latest
