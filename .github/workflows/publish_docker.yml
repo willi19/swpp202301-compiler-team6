@@ -32,4 +32,4 @@ jobs:
         uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
         with:
           push: true
-          tags: docker.pkg.github.com/willi19/swpp202301-compiler-team6/swpp202301:latest
+          tags: ghcr.io/willi19/swpp202301-compiler-team6/swpp202301:latest
