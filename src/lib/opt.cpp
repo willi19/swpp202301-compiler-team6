@@ -5,6 +5,9 @@
 
 #include "print_ir.h"
 
+// Our team's passes
+#include "CustomPass.h"
+
 using namespace std::string_literals;
 
 namespace sc::opt {
@@ -25,6 +28,8 @@ optimizeIR(std::unique_ptr<llvm::Module> &&__M,
     // Add loop-level opt passes below
 
     // Add function-level opt passes below
+    FPM.addPass(branchpredict::BranchPredictPass());
+
     CGPM.addPass(llvm::createCGSCCToFunctionPassAdaptor(std::move(FPM)));
     // Add CGSCC-level opt passes below
 
@@ -32,6 +37,7 @@ optimizeIR(std::unique_ptr<llvm::Module> &&__M,
     // Add module-level opt passes below
 
     MPM.run(*__M, __MAM);
+    llvm::errs() << *__M << '\n';
     sc::print_ir::printIRIfVerbose(*__M, "After optimization");
   } catch (const std::exception &e) {
     return RetType::Err(OptInternalError(e));
