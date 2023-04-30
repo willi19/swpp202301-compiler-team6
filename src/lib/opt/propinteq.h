@@ -10,7 +10,7 @@
 using namespace llvm;
 using namespace std;
 
-class PropagateIntegerEquality : public PassInfoMixin<PropagateIntegerEquality>
+class PropagateIntegerEqualityPass : public PassInfoMixin<PropagateIntegerEqualityPass>
 {
   public : PreservedAnalyses run(Function &F, FunctionAnalysisManager &FAM);
 };
