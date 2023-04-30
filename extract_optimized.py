@@ -13,6 +13,5 @@ verbose = input_file.readlines()
 
 start = 6
 while verbose[start] != "----------------------------------------\n":
-    print(verbose[start])
     output_file.write(verbose[start])
     start += 1
