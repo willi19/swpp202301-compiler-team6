@@ -16,9 +16,8 @@ jobs:
           cmake -GNinja -Bbuild
           cmake --build build --target swpp-compiler
         
-      - name: test
+      - name: file-check
         run: |
-          cd build
-          ctest
+           ./checkfile.sh
       
     
