@@ -1,13 +1,11 @@
 name: Commit-CI
 on:
   push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+    branches: ['nfc_sprint1']
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: strikef/swpp-ci
+    container: ghcr.io/willi19/swpp202301-compiler-team6/swpp202301
     
     steps:
       - name: Checkout

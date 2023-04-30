@@ -13,6 +13,6 @@ using namespace std;
 class PropagateIntegerEquality : public PassInfoMixin<PropagateIntegerEquality>
 {
   public : PreservedAnalyses run(Function &F, FunctionAnalysisManager &FAM);
-}
+};
 
 #endif
