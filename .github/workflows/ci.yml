@@ -15,6 +15,10 @@ jobs:
         run: |
           cmake -GNinja -Bbuild
           cmake --build build --target swpp-compiler
+      
+      - name: help
+        run: |
+          ./build/swpp-compiler -h
         
       - name: file-check
         run: |
