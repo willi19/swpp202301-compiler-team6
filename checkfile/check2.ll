@@ -1,5 +1,5 @@
 define i32 @main(i32 %b, i32 %a) {
-; CHECK: start main 2:
+; CHECK: start main 3:
   %cond = icmp eq i32 %a, %b
   br i1 %cond, label %bb_true, label %bb_false
 bb_true:
