@@ -85,6 +85,8 @@ endfunction()
 
 # /================= ADD OPT PASSES BELOW ================/
 
+add_opt_pass(Load2AloadPass load2aload.cpp)
+
 # /================== DO NOT EDIT BELOW ==================/
 add_library(SCOpt ${SRC_DIR}/lib/opt.cpp)
 target_include_directories(SCOpt PRIVATE ${LLVM_INCLUDE_DIRS})
