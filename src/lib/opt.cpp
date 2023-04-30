@@ -5,8 +5,6 @@
 
 #include "print_ir.h"
 
-#include "opt/propinteq.h"
-
 using namespace std::string_literals;
 
 namespace sc::opt {
