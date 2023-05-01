@@ -7,8 +7,7 @@ else
     sudo apt install re2c
 fi
 
-sudo apt-get update -y
-sudo apt-get install -y ninja-build
+echo ninja --version
 
 # Specify LLVM installation directory
 LLVM_DIR=/opt/llvm
