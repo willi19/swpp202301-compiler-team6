@@ -29,12 +29,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       
       - name : install-ninja
-        uses: seanmiddleditch/gha-setup-ninja@master
-        run: |
-          mkdir build
-          cd build
-          cmake -G Ninja ..
-          cmake --build build
+        uses: ashutoshvarma/setup-ninja@master
       
       - name : install-alive2
         run : ./install-alive2.sh
