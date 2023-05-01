@@ -14,6 +14,4 @@ RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip
 
-RUN ls
-RUN ./install-alive2.sh
     

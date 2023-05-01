@@ -27,6 +27,9 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name : install-alive
+        run : ./install-alive2.sh
 
       - name: build and publish
         uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
