@@ -3,6 +3,3 @@
 build
 docs
 *.s
-tmp.ll
-.tmp*
-.verbose*
