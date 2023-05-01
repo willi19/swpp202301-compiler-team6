@@ -8,9 +8,9 @@ else
 fi
 
 # Specify LLVM installation directory
-LLVM_DIR=~/llvm-swpp
+LLVM_DIR=/opt/llvm
 # Specify Z3 installation directory (Z3 will be installed here!)
-Z3_DIR=~/z3
+Z3_DIR=/opt/z3
 
 # Install Z3
 git clone -b z3-4.12.1 https://github.com/Z3Prover/z3.git --depth=1
