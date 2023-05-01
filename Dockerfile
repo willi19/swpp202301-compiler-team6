@@ -11,7 +11,7 @@ RUN git clone https://github.com/snu-sf-class/swpp202301-benchmarks.git benchmar
  && cd ..
 
 RUN apt-get update && apt-get install -y \
- && python3 \
- && python3-pip
+  python3 \
+  python3-pip
 
     
