@@ -12,7 +12,7 @@ define i32 @main(i32 %a) {
 ; CHECK-NEXT:	[[B:%.*]] = add i32 [[A]], 1
 ; CHECK-NEXT:	call void @f(i32 [[B]])
 ; CHECK-NEXT:	br label [[E]]
-; CHECK:	default:
+; CHECK:	else2:
 ; CHECK-NEXT:	[[C:%.*]] = add i32 [[A]], 2
 ; CHECK-NEXT:	call void @f(i32 [[C]])
 ; CHECK-NEXT:	br label [[E]]
