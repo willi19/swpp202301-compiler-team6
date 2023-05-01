@@ -1,7 +1,9 @@
 name: Commit-CI
 on:
   push:
-    branches: ['nfc_sprint1']
+    branches: ['main']
+  pull_request:
+    branches: ['main']
 jobs:
   build:
     runs-on: ubuntu-latest
