@@ -5,7 +5,7 @@ define i32 @main(i32 %a) {
 ; CHECK-NEXT:	[[COND:%.*]] = icmp eq i32 [[A:%.*]], 1
 ; CHECK-NEXT:	br i1 [[COND]], label [[CASE:%.*]], label [[E:%,*]]
 ; CHECK:	case2:
-; CHECK-NEXT:	call void @f([[A]])
+; CHECK-NEXT:	call void @f(i32 [[A]])
 ; CHECK-NEXT:	br label [[E]]
 ; CHECK:	exit:
 ; CHECK-NEXT:	ret i32 [[A]]

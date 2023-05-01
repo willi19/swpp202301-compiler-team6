@@ -6,15 +6,15 @@ define i32 @main(i32 %a) {
 ; CHECK-NEXT:	i32 1, label [[C1:%.*]]
 ; CHECK-NEXT:	i32 2, label [[C2:%.*]]
 ; CHECK:	case1:
-; CHECK-NEXT:	call void @f([[A]])
+; CHECK-NEXT:	call void @f(i32 [[A]])
 ; CHECK-NEXT:	br label [[E:%.*]]
 ; CHECK:	case2:
 ; CHECK-NEXT:	[[B:%.*]] = add i32 [[A]], 1
-; CHECK-NEXT:	call void @f([[B]])
+; CHECK-NEXT:	call void @f(i32 [[B]])
 ; CHECK-NEXT:	br label [[E]]
 ; CHECK:	default:
 ; CHECK-NEXT:	[[C:%.*]] = add i32 [[A]], 2
-; CHECK-NEXT:	call void @f([[C]])
+; CHECK-NEXT:	call void @f(i32 [[C]])
 ; CHECK-NEXT:	br label [[E]]
 ; CHECK:	exit:
 ; CHECK-NEXT:	ret i32 [[A]]
