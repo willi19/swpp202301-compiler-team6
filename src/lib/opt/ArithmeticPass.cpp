@@ -35,7 +35,7 @@ PreservedAnalyses ArithmeticPass::run(Function &F, FunctionAnalysisManager &FAM)
           else if(width!=64&&(cons+1)==(1ull<<width))
             ReplaceInstWithValue(BB.getInstList(),tmp_itr,FirstOp);
           else if(cons==0)
-            ReplaceInstWithValue(BB.getInstList(),tmp_itr,FirstOp);
+            ReplaceInstWithValue(BB.getInstList(),tmp_itr,ConstOp);
           else
             And.push_back(&I);
         }
