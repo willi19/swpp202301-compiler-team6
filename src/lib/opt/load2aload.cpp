@@ -139,8 +139,10 @@ PreservedAnalyses Load2AloadPass::run(Function &F,
         InstCost -= getExpectedCost(InstQueue.front());
         InstQueue.pop_front();
       }
+      // TODO: instead of simplistically pushing loads into aloads,
+      // we should check the cost until the first use of the loaded value
       if (auto *LI = dyn_cast<LoadInst>(&I)) {
-        if (!InstQueue.empty()) {
+        if (!InstQueue.empty() && InstCost >= 4) {
           ReplaceMap[LI] = InstQueue.front();
         }
       }
@@ -148,10 +150,13 @@ PreservedAnalyses Load2AloadPass::run(Function &F,
       if (canStoreMemory(&I)) {
         InstQueue.clear();
         InstCost = 0;
+      } else {
+        InstQueue.push_back(&I);
+        InstCost += getExpectedCost(&I);
       }
-      InstQueue.push_back(&I);
-      InstCost += getExpectedCost(&I);
     }
+
+    SmallVector<LoadInst *, 16> ToRemove;
 
     for (auto &[LI, InsertPos] : ReplaceMap) {
       Type *Ty = LI->getType();
@@ -180,14 +185,19 @@ PreservedAnalyses Load2AloadPass::run(Function &F,
       }
       CallInst *CI = CallInst::Create(Aload, V);
       if (auto *VI = dyn_cast<Instruction>(V)) {
-        if (InsertPos->comesBefore(VI->getNextNode())) {
+        if (InsertPos->getParent() == VI->getParent() &&
+            InsertPos->comesBefore(VI->getNextNode())) {
           InsertPos = VI->getNextNode();
         }
       }
       CI->insertBefore(InsertPos);
       LI->replaceAllUsesWith(CI);
-      LI->eraseFromParent();
+      ToRemove.push_back(LI);
       Changed = true;
+    }
+
+    for (auto *LI : ToRemove) {
+      LI->eraseFromParent();
     }
   }
   return Changed ? PreservedAnalyses::none() : PreservedAnalyses::all();
