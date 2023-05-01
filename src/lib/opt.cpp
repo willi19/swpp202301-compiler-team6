@@ -5,6 +5,8 @@
 
 #include "print_ir.h"
 
+#include "llvm/Transforms/Utils/Mem2Reg.h"
+
 using namespace std::string_literals;
 
 namespace sc::opt {
@@ -25,6 +27,7 @@ optimizeIR(std::unique_ptr<llvm::Module> &&__M,
     // Add loop-level opt passes below
 
     // Add function-level opt passes below
+    FPM.addPass(llvm::PromotePass());
     CGPM.addPass(llvm::createCGSCCToFunctionPassAdaptor(std::move(FPM)));
     // Add CGSCC-level opt passes below
 
