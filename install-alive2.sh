@@ -7,6 +7,9 @@ else
     sudo apt install re2c
 fi
 
+sudo apt-get update -y
+sudo apt-get install -y ninja-build
+
 # Specify LLVM installation directory
 LLVM_DIR=/opt/llvm
 # Specify Z3 installation directory (Z3 will be installed here!)

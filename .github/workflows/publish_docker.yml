@@ -28,9 +28,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       
-      - name : install-ninja
-        uses: ashutoshvarma/setup-ninja@master
-      
       - name : install-alive2
         run : ./install-alive2.sh
 
