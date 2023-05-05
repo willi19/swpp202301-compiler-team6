@@ -1,7 +1,7 @@
 define i32 @main(i32 %arg1, i32 %arg2, i8 %arg3, i1 %arg4) {
 ; CHECK-LABEL: @main(i32 %arg1, i32 %arg2, i8 %arg3, i1 %arg4)
-; CHECK-NEXT:    [[CHECK1:%.*]] = add i32 0 5
-; CHECK-NEXT:    [[AND2:%.*]] = and i32 [[ARG1:%.*]], [[ARG2%.*]]
+; CHECK-NEXT:    [[CHECK1:%.*]] = add i32 0, 5
+; CHECK-NEXT:    [[AND2:%.*]] = and i32 [[ARG1:%.*]], [[ARG2:%.*]]
 ; CHECK-NEXT:    [[AND3:%.*]] = urem i8 [[ARG3:%.*]], 2
 ; CHECK-NEXT:    [[AND4:%.*]] = and i8 [[ARG3:%.*]], 2
 ; CHECK-NEXT:    [[AND5:%.*]] = urem i8 [[ARG3:%.*]], 4
