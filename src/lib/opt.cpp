@@ -9,6 +9,7 @@
 
 #include "print_ir.h"
 
+#include "llvm/Transforms/Utils/Mem2Reg.h"
 #include "llvm/Transforms/Scalar/SimplifyCFG.h"
 
 using namespace std::string_literals;
@@ -32,6 +33,7 @@ optimizeIR(std::unique_ptr<llvm::Module> &&__M,
     FPM.addPass(llvm::SimplifyCFGPass());
 
     // Add function-level opt passes below
+    FPM.addPass(llvm::PromotePass());
     FPM.addPass(arithmeticPass::ArithmeticPass());
     FPM.addPass(branchpredict::BranchPredictPass());
     FPM.addPass(load2aload::Load2AloadPass());
