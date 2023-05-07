@@ -84,6 +84,7 @@ function(add_opt_pass pass_name file_name)
 endfunction()
 
 # /================= ADD OPT PASSES BELOW ================/
+add_opt_pass(BranchPredictPass branchpredict.cpp)
 
 add_opt_pass(Load2AloadPass load2aload.cpp)
 
