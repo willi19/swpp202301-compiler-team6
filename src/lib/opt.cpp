@@ -3,6 +3,9 @@
 #include "../static_error.h"
 #include "llvm/Analysis/CGSCCPassManager.h"
 
+#include "opt/branchpredict.h"
+#include "opt/load2aload.h"
+
 #include "print_ir.h"
 
 #include "opt/ArithmeticPass.h"
@@ -27,6 +30,9 @@ optimizeIR(std::unique_ptr<llvm::Module> &&__M,
 
     // Add function-level opt passes below
     FPM.addPass(arithmeticPass::ArithmeticPass());
+    FPM.addPass(branchpredict::BranchPredictPass());
+    FPM.addPass(load2aload::Load2AloadPass());
+
     CGPM.addPass(llvm::createCGSCCToFunctionPassAdaptor(std::move(FPM)));
     // Add CGSCC-level opt passes below
 
@@ -34,6 +40,7 @@ optimizeIR(std::unique_ptr<llvm::Module> &&__M,
     // Add module-level opt passes below
 
     MPM.run(*__M, __MAM);
+
     sc::print_ir::printIRIfVerbose(*__M, "After optimization");
   } catch (const std::exception &e) {
     return RetType::Err(OptInternalError(e));
