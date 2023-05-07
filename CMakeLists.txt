@@ -84,6 +84,9 @@ function(add_opt_pass pass_name file_name)
 endfunction()
 
 # /================= ADD OPT PASSES BELOW ================/
+add_opt_pass(ArithmeticPass ArithmeticPass.cpp)
+add_opt_pass(BranchPredictPass branchpredict.cpp)
+add_opt_pass(Load2AloadPass load2aload.cpp)
 
 # /================== DO NOT EDIT BELOW ==================/
 add_library(SCOpt ${SRC_DIR}/lib/opt.cpp)
@@ -123,3 +126,7 @@ endif (DOXYGEN_FOUND)
 
 enable_testing()
 # Add tests, subdirectories, etc below
+add_test(
+    NAME filecheck_test
+    COMMAND ../checkfile.sh /opt/llvm/bin/FileCheck
+    ) 
