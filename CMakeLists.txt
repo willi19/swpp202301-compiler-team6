@@ -123,3 +123,7 @@ endif (DOXYGEN_FOUND)
 
 enable_testing()
 # Add tests, subdirectories, etc below
+add_test(
+    NAME filecheck_test
+    COMMAND ../checkfile.sh /opt/llvm/bin/FileCheck
+    ) 
