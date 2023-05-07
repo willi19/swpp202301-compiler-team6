@@ -8,6 +8,7 @@
 
 #include "print_ir.h"
 
+#include "opt/ArithmeticPass.h"
 using namespace std::string_literals;
 
 namespace sc::opt {
@@ -28,6 +29,7 @@ optimizeIR(std::unique_ptr<llvm::Module> &&__M,
     // Add loop-level opt passes below
 
     // Add function-level opt passes below
+    FPM.addPass(arithmeticPass::ArithmeticPass());
     FPM.addPass(branchpredict::BranchPredictPass());
     FPM.addPass(load2aload::Load2AloadPass());
 
