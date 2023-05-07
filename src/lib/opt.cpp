@@ -5,16 +5,18 @@
 
 #include "opt/branchpredict.h"
 #include "opt/load2aload.h"
+#include "opt/ArithmeticPass.h"
 
 #include "print_ir.h"
 
-#include "opt/ArithmeticPass.h"
+#include "llvm/Transforms/Scalar/SimplifyCFG.h"
+
 using namespace std::string_literals;
 
 namespace sc::opt {
 OptInternalError::OptInternalError(const std::exception &__e) noexcept {
-    message = "exception thrown from opt\n"s + __e.what();
-  }
+  message = "exception thrown from opt\n"s + __e.what();
+}
 
 Result<std::unique_ptr<llvm::Module>, OptInternalError>
 optimizeIR(std::unique_ptr<llvm::Module> &&__M,
@@ -27,6 +29,7 @@ optimizeIR(std::unique_ptr<llvm::Module> &&__M,
     llvm::ModulePassManager MPM;
 
     // Add loop-level opt passes below
+    FPM.addPass(llvm::SimplifyCFGPass());
 
     // Add function-level opt passes below
     FPM.addPass(arithmeticPass::ArithmeticPass());
