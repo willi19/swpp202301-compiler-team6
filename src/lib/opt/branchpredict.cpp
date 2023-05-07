@@ -44,8 +44,10 @@ PreservedAnalyses BranchPredictPass::run(Function &F,
           // Set the predicate of the icmp to the inverse predicate
           ICI->setPredicate(InvPred);
         } else {
-          // Negate the condition with an xor
-          BI->setCondition(BinaryOperator::CreateNot(Cond, "", BI));
+          // Negate the condition with an sub, optimized for our backend
+          Value *One = ConstantInt::get(Type::getInt1Ty(BI->getContext()), 1);
+          Value *Neg = BinaryOperator::CreateSub(One, Cond, "", BI);
+          BI->setCondition(Neg);
         }
 
         Changed = true;
