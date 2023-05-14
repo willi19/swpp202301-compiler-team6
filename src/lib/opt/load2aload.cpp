@@ -134,6 +134,10 @@ PreservedAnalyses Load2AloadPass::run(Function &F,
     int InstCost = 0;
 
     for (auto &I : BB) {
+      // Note: instructions can only be pushed upto the first non-phi node
+      if (I.comesBefore(BB.getFirstNonPHI()))
+        continue;
+
       while (!InstQueue.empty() &&
              InstCost - getExpectedCost(InstQueue.front()) > 34) {
         InstCost -= getExpectedCost(InstQueue.front());
@@ -184,6 +188,8 @@ PreservedAnalyses Load2AloadPass::run(Function &F,
         continue;
       }
       CallInst *CI = CallInst::Create(Aload, V);
+      assert(!InsertPos->comesBefore(InsertPos->getParent()->getFirstNonPHI()) &&
+             "The insertion position cannot come before the first non-phi.");
       if (auto *VI = dyn_cast<Instruction>(V)) {
         if (InsertPos->getParent() == VI->getParent() &&
             InsertPos->comesBefore(VI->getNextNode())) {
