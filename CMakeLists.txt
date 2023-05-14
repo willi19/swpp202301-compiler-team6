@@ -142,3 +142,8 @@ add_test(NAME mem2reg
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/utils/testpass.sh
         ${LLVM_TOOLS_BINARY_DIR} mem2reg
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+
+add_test(NAME tailcallelim
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/utils/testpass.sh
+        ${LLVM_TOOLS_BINARY_DIR} tailcallelim
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
