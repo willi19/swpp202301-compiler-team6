@@ -6,6 +6,7 @@
 #include "opt/branchpredict.h"
 #include "opt/load2aload.h"
 #include "opt/ArithmeticPass.h"
+#include "opt/loop2sum.h"
 
 #include "print_ir.h"
 
@@ -31,7 +32,8 @@ optimizeIR(std::unique_ptr<llvm::Module> &&__M,
 
     // Add loop-level opt passes below
     FPM.addPass(llvm::SimplifyCFGPass());
-
+    FPM.addPass(createFunctionToLoopPassAdaptor(loop2sum::Loop2SumPass()));
+ 
     // Add function-level opt passes below
     FPM.addPass(llvm::PromotePass());
     FPM.addPass(arithmeticPass::ArithmeticPass());
