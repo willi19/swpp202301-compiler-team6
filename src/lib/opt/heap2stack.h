@@ -13,7 +13,7 @@ const int BOUNDARY_DENOMINATOR = 5;
 const int BOUNDARY_NUMERATOR = 4;
 
 namespace sc::opt::heap2stack {
-class Heap2Stack : public PassInfoMixin<Heap2Stack> {
+class Heap2StackPass : public PassInfoMixin<Heap2StackPass> {
 public:
   PreservedAnalyses run(Module &M, ModuleAnalysisManager &MAM);
 };

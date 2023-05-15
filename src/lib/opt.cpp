@@ -46,6 +46,7 @@ optimizeIR(std::unique_ptr<llvm::Module> &&__M,
     // Add CGSCC-level opt passes below
 
     MPM.addPass(llvm::createModuleToPostOrderCGSCCPassAdaptor(std::move(CGPM)));
+    MPM.addPass(heap2stack::Heap2StackPass());
     // Add module-level opt passes below
     MPM.addPass(llvm::VerifierPass());
 

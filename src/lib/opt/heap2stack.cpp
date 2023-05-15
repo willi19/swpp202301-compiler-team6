@@ -39,7 +39,7 @@ bool hasCycleInFunction(Function *function, std::set<Function *> &visitedFunctio
 } // namespace 
 
 namespace sc::opt::heap2stack {
-PreservedAnalyses Heap2Stack::run(Module &M, ModuleAnalysisManager &MAM) {
+PreservedAnalyses Heap2StackPass::run(Module &M, ModuleAnalysisManager &MAM) {
   
   bool hasCycle = false;
 
@@ -122,9 +122,9 @@ PreservedAnalyses Heap2Stack::run(Module &M, ModuleAnalysisManager &MAM) {
     //ConstantInt *Zero = ConstantInt::get(Int64Ty, 0, true);
     //Value *Args[] = {Zero};
     //auto *LoadCurSp = CallInst::Create(DecrSp, ArrayRef<Value *>(Args), ""); //Load cursp by sp = sub sp 0
-    auto *LoadCurSp = CallInst::Create(DecrSp, ArrayRef<Value *>{ConstantInt::get(Int64Ty, 0, true)}, "");
-    auto *LetfSpace = BinaryOperator::CreateMul(LoadCurSp, ConstantInt::get(Int64Ty, BOUNDARY_NUMERATOR), "");
-    auto *RequiredSpace = BinaryOperator::CreateMul(AllocSize, ConstantInt::get(Int64Ty, BOUNDARY_DENOMINATOR), "");
+    auto *LoadCurSp = CallInst::Create(DecrSp, ArrayRef<Value *>{ConstantInt::get(Int64Ty, 0, true)}, "cur.sp");
+    auto *LetfSpace = BinaryOperator::CreateMul(LoadCurSp, ConstantInt::get(Int64Ty, BOUNDARY_NUMERATOR), "left.space");
+    auto *RequiredSpace = BinaryOperator::CreateMul(AllocSize, ConstantInt::get(Int64Ty, BOUNDARY_DENOMINATOR), "req.space");
     
     auto *CmpSP = new ICmpInst(ICmpInst::ICMP_SGE, LetfSpace,RequiredSpace, "alloca_possible"); //Leftspace > RequiredSpace
     auto *BrSP = BranchInst::Create(AllocaBB, MallocBB, CmpSP);
@@ -165,8 +165,9 @@ PreservedAnalyses Heap2Stack::run(Module &M, ModuleAnalysisManager &MAM) {
    * else ; // do nothing */
   for (auto &CI : FreeInsts) {
     BasicBlock *BB = CI->getParent();
-    BasicBlock *SplitBB = BB->splitBasicBlock(CI, "div." + BB->getName());
-    BasicBlock *FreeBB = BasicBlock::Create(Context, "free." + BB->getName(), MainFn);
+    BasicBlock *SplitBB = BB->splitBasicBlock(CI, "div.free." + BB->getName());
+    Function* CurFn = BB->getParent();
+    BasicBlock *FreeBB = BasicBlock::Create(Context, "free." + BB->getName(), CurFn);
     Value *AllocPtr = CI->getOperand(0);
 
     // Basic Block Conditional Branch Update
