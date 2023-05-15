@@ -3,4 +3,3 @@
 build
 docs
 *.s
-.clang-format
