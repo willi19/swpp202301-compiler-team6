@@ -34,7 +34,7 @@ optimizeIR(std::unique_ptr<llvm::Module> &&__M,
     llvm::ModulePassManager MPM;
 
     // Add loop-level opt passes below
-    FPM.addPass(llvm::SimplifyCFGPass());
+    // FPM.addPass(llvm::SimplifyCFGPass());
 
     FPM.addPass(llvm::createFunctionToLoopPassAdaptor(std::move(LPM)));
     // Add function-level opt passes below
@@ -42,6 +42,7 @@ optimizeIR(std::unique_ptr<llvm::Module> &&__M,
     FPM.addPass(arithmeticpass::ArithmeticPass());
     FPM.addPass(branchpredict::BranchPredictPass());
     FPM.addPass(load2aload::Load2AloadPass());
+    FPM.addPass(llvm::GVNPass());
 
     CGPM.addPass(llvm::createCGSCCToFunctionPassAdaptor(std::move(FPM)));
     // Add CGSCC-level opt passes below
