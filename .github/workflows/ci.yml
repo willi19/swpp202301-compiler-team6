@@ -7,19 +7,17 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: ghcr.io/willi19/swpp202301-compiler-team6/swpp202301
+    container: strikef/swpp-ci
     
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-        
-      - name: compile
+      - name: Compile
         run: |
           cmake -GNinja -Bbuild
-          cmake --build build --target swpp-compiler
-        
-      - name: file-check
+          ninja -Cbuild
+      - name: Test
         run: |
-           ./checkfile.sh /opt/llvm/bin/FileCheck
+          ninja -Cbuild test
       
     
