@@ -81,12 +81,16 @@ function(add_opt_pass pass_name file_name)
     target_include_directories(${pass_name} PRIVATE ${LLVM_INCLUDE_DIRS})
     target_link_libraries(${pass_name} PRIVATE ${pass_llvm_libs})
     target_link_libraries(OptPasses INTERFACE ${pass_name})
+    add_test(NAME ${pass_name}
+        COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/utils/testpass.sh
+            ${LLVM_TOOLS_BINARY_DIR} ${pass_name} $<TARGET_FILE:${pass_name}>
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 endfunction()
 
 # /================= ADD OPT PASSES BELOW ================/
-add_opt_pass(ArithmeticPass arithmeticpass.cpp)
-add_opt_pass(BranchPredictPass branchpredict.cpp)
-add_opt_pass(Load2AloadPass load2aload.cpp)
+add_opt_pass(arithmetic arithmeticpass.cpp)
+add_opt_pass(branchpredict branchpredict.cpp)
+add_opt_pass(load2aload load2aload.cpp)
 
 # /================== DO NOT EDIT BELOW ==================/
 add_library(SCOpt ${SRC_DIR}/lib/opt.cpp)
@@ -126,7 +130,14 @@ endif (DOXYGEN_FOUND)
 
 enable_testing()
 # Add tests, subdirectories, etc below
-add_test(
-    NAME filecheck_test
-    COMMAND ../checkfile.sh /opt/llvm/bin/FileCheck
-    ) 
+# Tests for custom passes are added through add_opt_pass
+
+add_test(NAME simplifycfg
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/utils/testpass.sh
+        ${LLVM_TOOLS_BINARY_DIR} simplifycfg
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+
+add_test(NAME mem2reg
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/utils/testpass.sh
+        ${LLVM_TOOLS_BINARY_DIR} mem2reg
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})

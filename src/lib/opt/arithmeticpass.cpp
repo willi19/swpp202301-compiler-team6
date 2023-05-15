@@ -2,6 +2,8 @@
 
 #include "llvm/IR/PassManager.h"
 #include "llvm/IR/PatternMatch.h"
+#include "llvm/Passes/PassBuilder.h"
+#include "llvm/Passes/PassPlugin.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 
 #include <vector>
@@ -138,5 +140,20 @@ PreservedAnalyses ArithmeticPass::run(Function &F,
   }
 
   return Changed ? PreservedAnalyses::none() : PreservedAnalyses::all();
+}
+
+extern "C" ::llvm::PassPluginLibraryInfo llvmGetPassPluginInfo() {
+  return {LLVM_PLUGIN_API_VERSION, "SWPPArithmetic", "v0.1",
+          [](PassBuilder &PB) {
+            PB.registerPipelineParsingCallback(
+                [](StringRef Name, FunctionPassManager &FPM,
+                   ArrayRef<PassBuilder::PipelineElement>) {
+                  if (Name == "arithmetic") {
+                    FPM.addPass(ArithmeticPass());
+                    return true;
+                  }
+                  return false;
+                });
+          }};
 }
 } // namespace sc::opt::arithmeticpass
