@@ -1,16 +1,15 @@
 #include "opt.h"
 
 #include "../static_error.h"
-#include "llvm/Analysis/CGSCCPassManager.h"
-
+#include "opt/arithmeticpass.h"
 #include "opt/branchpredict.h"
 #include "opt/load2aload.h"
-#include "opt/ArithmeticPass.h"
-
 #include "print_ir.h"
 
-#include "llvm/Transforms/Utils/Mem2Reg.h"
+#include "llvm/Analysis/CGSCCPassManager.h"
+#include "llvm/IR/Verifier.h"
 #include "llvm/Transforms/Scalar/SimplifyCFG.h"
+#include "llvm/Transforms/Utils/Mem2Reg.h"
 
 using namespace std::string_literals;
 
@@ -34,7 +33,7 @@ optimizeIR(std::unique_ptr<llvm::Module> &&__M,
 
     // Add function-level opt passes below
     FPM.addPass(llvm::PromotePass());
-    FPM.addPass(arithmeticPass::ArithmeticPass());
+    FPM.addPass(arithmeticpass::ArithmeticPass());
     FPM.addPass(branchpredict::BranchPredictPass());
     FPM.addPass(load2aload::Load2AloadPass());
 
@@ -43,6 +42,7 @@ optimizeIR(std::unique_ptr<llvm::Module> &&__M,
 
     MPM.addPass(llvm::createModuleToPostOrderCGSCCPassAdaptor(std::move(CGPM)));
     // Add module-level opt passes below
+    MPM.addPass(llvm::VerifierPass());
 
     MPM.run(*__M, __MAM);
 

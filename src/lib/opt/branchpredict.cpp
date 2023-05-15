@@ -1,3 +1,5 @@
+#include "branchpredict.h"
+
 #include "llvm/ADT/Statistic.h"
 #include "llvm/Analysis/BranchProbabilityInfo.h"
 #include "llvm/Analysis/TargetTransformInfo.h"
@@ -5,8 +7,6 @@
 #include "llvm/IR/Instructions.h"
 #include "llvm/Passes/PassBuilder.h"
 #include "llvm/Passes/PassPlugin.h"
-
-#include "branchpredict.h"
 
 using namespace llvm;
 
@@ -54,6 +54,6 @@ PreservedAnalyses BranchPredictPass::run(Function &F,
       }
     }
   }
-  return (Changed ? PreservedAnalyses::none() : PreservedAnalyses::all());
+  return Changed ? PreservedAnalyses::none() : PreservedAnalyses::all();
 }
 } // namespace sc::opt::branchpredict
