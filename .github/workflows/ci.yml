@@ -1,23 +1,42 @@
-name: Commit-CI
-on:
-  push:
-    branches: ['main']
-  pull_request:
-    branches: ['main']
+name: SWPP2023 Compiler CI
+on: [push, pull_request]
 jobs:
   build:
     runs-on: ubuntu-latest
     container: strikef/swpp-ci
-    
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
-      - name: Compile
+        uses: actions/checkout@v3
+      - name: Checkout interpreter
+        uses: actions/checkout@v3
+        with:
+          repository: snu-sf-class/swpp202301-interpreter
+          path: interpreter
+      - name: Build interpreter
+        working-directory: interpreter
+        run: |
+          cmake -GNinja -Bbuild
+          ninja -Cbuild
+      - name: Checkout benchmarks
+        uses: actions/checkout@v3
+        with:
+          repository: snu-sf-class/swpp202301-benchmarks
+          path: benchmarks
+      - name: Generate benchmarks
+        working-directory: benchmarks
+        run: |
+          ./build-lls.py /opt/llvm/bin
+      - name: Build
         run: |
           cmake -GNinja -Bbuild
           ninja -Cbuild
       - name: Test
         run: |
           ninja -Cbuild test
-      
-    
+      - name: Build benchmarks
+        working-directory: benchmarks
+        run: |
+          ./build-asms.py ../build/swpp-compiler
+      - name: Run benchmarks
+        run: |
+          ./utils/benchmark.sh build/swpp-compiler interpreter/build/swpp-interpreter benchmarks
