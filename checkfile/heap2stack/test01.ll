@@ -72,7 +72,6 @@
 ; CHECK: call void @free(i8* %5)
 ; CHECK: br label %div.free.div.free.for.end26
 
-}
 
 declare i64 @read(...) #2
 declare noalias i8* @malloc(i64 noundef) #3
@@ -115,7 +114,7 @@ for.body:                                         ; preds = %for.cond
 
 for.inc:                                          ; preds = %for.body
   %inc = add nsw i32 %i.0, 1
-  br label %for.cond, !llvm.loop !5
+  br label %for.cond
 
 for.end:                                          ; preds = %for.cond.cleanup
   call void @write(i64 noundef %ans.0)
@@ -145,7 +144,7 @@ for.body16:                                       ; preds = %for.cond11
 
 for.inc24:                                        ; preds = %for.body16
   %inc25 = add nsw i32 %i10.0, 1
-  br label %for.cond11, !llvm.loop !8
+  br label %for.cond11
 
 for.end26:                                        ; preds = %for.cond.cleanup15
   call void @write(i64 noundef %ans.1)
