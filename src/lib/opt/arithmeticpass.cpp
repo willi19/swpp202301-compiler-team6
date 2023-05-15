@@ -1,13 +1,19 @@
-#include "ArithmeticPass.h"
+#include "arithmeticpass.h"
+
+#include "llvm/IR/PassManager.h"
+#include "llvm/IR/PatternMatch.h"
+#include "llvm/Transforms/Utils/BasicBlockUtils.h"
+
 #include <vector>
 
 using namespace llvm;
 using namespace std;
 using namespace llvm::PatternMatch;
 
-namespace sc::opt::arithmeticPass {
-PreservedAnalyses arithmeticPass::ArithmeticPass::run(Function &F,
+namespace sc::opt::arithmeticpass {
+PreservedAnalyses ArithmeticPass::run(Function &F,
                                       FunctionAnalysisManager &FAM) {
+  bool Changed = false;
   for (BasicBlock &BB : F) {
     vector<Instruction *> AddInst, ShlInst, LShrInst, AShrInst, AndInst;
     for (auto itr = BB.begin(), en = BB.end(); itr != en;) {
@@ -60,8 +66,10 @@ PreservedAnalyses arithmeticPass::ArithmeticPass::run(Function &F,
         }
       }
     }
+
     // Change Instruction to mul x 2
     for (Instruction *AddI : AddInst) {
+      Changed = true;
       Value *FirstOp = AddI->getOperand(0);
       Instruction *NewInst = BinaryOperator::Create(
           Instruction::Mul, FirstOp, ConstantInt::get(FirstOp->getType(), 2));
@@ -71,6 +79,7 @@ PreservedAnalyses arithmeticPass::ArithmeticPass::run(Function &F,
     // Change Instruction to mul x (1<<c), if (1<<c) generates overflow, than
     // original instruction was undefined too.
     for (Instruction *ShlI : ShlInst) {
+      Changed = true;
       Value *FirstOp = ShlI->getOperand(0);
       ConstantInt *ShlVal = dyn_cast<ConstantInt>(ShlI->getOperand(1));
       uint64_t c = ShlVal->getZExtValue();
@@ -82,6 +91,7 @@ PreservedAnalyses arithmeticPass::ArithmeticPass::run(Function &F,
 
     // Change Instruction to udiv x (1<<c)
     for (Instruction *LShrI : LShrInst) {
+      Changed = true;
       Value *FirstOp = LShrI->getOperand(0);
       ConstantInt *LShrVal = dyn_cast<ConstantInt>(LShrI->getOperand(1));
       uint64_t ushrval = LShrVal->getZExtValue();
@@ -93,6 +103,7 @@ PreservedAnalyses arithmeticPass::ArithmeticPass::run(Function &F,
 
     // Change Instruction to sdiv x (1<<c)
     for (Instruction *AShrI : AShrInst) {
+      Changed = true;
       Value *FirstOp = AShrI->getOperand(0);
       ConstantInt *AShrVal = dyn_cast<ConstantInt>(AShrI->getOperand(1));
       uint64_t ashrval = AShrVal->getZExtValue();
@@ -104,12 +115,13 @@ PreservedAnalyses arithmeticPass::ArithmeticPass::run(Function &F,
 
     // Change Instruction to urem x (1<<c) or const
     for (Instruction *AndI : AndInst) {
+      Changed = true;
       auto *FirstOp = AndI->getOperand(0);
       auto *SecondOperand = AndI->getOperand(1);
 
       Value *XOperand;
       ConstantInt *AndVal = dyn_cast<ConstantInt>(FirstOp);
-      
+
       if (AndVal == NULL) {
         AndVal = dyn_cast<ConstantInt>(SecondOperand);
         XOperand = FirstOp;
@@ -125,6 +137,6 @@ PreservedAnalyses arithmeticPass::ArithmeticPass::run(Function &F,
     }
   }
 
-  return PreservedAnalyses::all();
+  return Changed ? PreservedAnalyses::none() : PreservedAnalyses::all();
 }
 } // namespace sc::opt::arithmeticpass
