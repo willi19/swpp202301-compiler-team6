@@ -6,3 +6,5 @@ docs
 logs
 .clang-format
 .tmp.ll
+utils
+.verbose

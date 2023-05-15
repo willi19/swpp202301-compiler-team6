@@ -19,15 +19,14 @@
 ; CHECK: %call = call i64 (...) @read()
 ; CHECK: %mul = mul i64 8, %call
 ; CHECK: %cur.sp = call i64 @"$decr_sp"(i64 0)
-; CHECK: %left.space = mul i64 %cur.sp, 4
-; CHECK: %req.space = mul i64 %mul, 5
-; CHECK: %alloca_possible = icmp sge i64 %left.space, %req.space
-; CHECK: br i1 %alloca_possible, label %alloca.entry, label %malloc.entry
+; CHECK: %space.left = sub i64 %cur.sp, %mul
+; CHECK: %alloca_possible = icmp sge i64 %space.left, 20480
+; CHECK: br i1 %alloca_possible, label %stack.entry, label %heap.entry
 
 ; Check div.entry block
 ; CHECK-LABEL: div.entry:
-; CHECK: %allocation.call1 = phi i8* [ %6, %alloca.entry ], [ %by.malloc, %malloc.entry ]
-; CHECK: %0 = bitcast i8* %allocation.call1 to i64*
+; CHECK: %alloc.call1 = phi i8* [ %6, %stack.entry ], [ %by.malloc, %heap.entry ]
+; CHECK: %0 = bitcast i8* %alloc.call1 to i64*
 ; CHECK: %mul2 = mul i64 8, %call
 ; CHECK: %call3 = call i8* @malloc_upto_8(i64 noundef %mul2)
 ; CHECK: %1 = bitcast i8* %call3 to i64*
@@ -47,13 +46,13 @@
 ; CHECK: ret i32 0
 
 ; Check alloca.entry block
-; CHECK-LABEL: alloca.entry:
+; CHECK-LABEL: stack.entry:
 ; CHECK: %by.alloca = call i64 @"$decr_sp"(i64 %mul)
 ; CHECK: %6 = inttoptr i64 %by.alloca to i8*
 ; CHECK: br label %div.entry
 
-; Check malloc.entry block
-; CHECK-LABEL: malloc.entry:
+; Check heap.entry block
+; CHECK-LABEL: heap.entry:
 ; CHECK: %by.malloc = call i8* @malloc(i64 %mul)
 ; CHECK: br label %div.entry
 
