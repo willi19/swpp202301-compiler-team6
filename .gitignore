@@ -8,3 +8,6 @@ logs
 .tmp.ll
 utils
 .verbose
+*/log-2/*
+*/log-2
+cost_graph*
