@@ -4,6 +4,8 @@
 #include "opt/arithmeticpass.h"
 #include "opt/branchpredict.h"
 #include "opt/load2aload.h"
+#include "opt/heap2stack.h"
+
 #include "print_ir.h"
 
 #include "llvm/Analysis/CGSCCPassManager.h"
@@ -31,7 +33,7 @@ optimizeIR(std::unique_ptr<llvm::Module> &&__M,
     llvm::ModulePassManager MPM;
 
     // Add loop-level opt passes below
-    FPM.addPass(llvm::SimplifyCFGPass());
+    //FPM.addPass(llvm::SimplifyCFGPass());
 
     FPM.addPass(llvm::createFunctionToLoopPassAdaptor(std::move(LPM)));
     // Add function-level opt passes below

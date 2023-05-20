@@ -4,3 +4,5 @@ build
 docs
 *.s
 logs
+.clang-format
+.tmp.ll
