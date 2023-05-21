@@ -147,3 +147,8 @@ add_test(NAME tailcallelim
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/utils/testpass.sh
         ${LLVM_TOOLS_BINARY_DIR} tailcallelim
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+
+add_test(NAME gvn
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/utils/testpass.sh
+        ${LLVM_TOOLS_BINARY_DIR} gvn
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
