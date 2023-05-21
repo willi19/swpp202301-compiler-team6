@@ -10,6 +10,7 @@
 
 #include "llvm/Analysis/CGSCCPassManager.h"
 #include "llvm/IR/Verifier.h"
+#include "llvm/Transforms/Scalar/GVN.h"
 #include "llvm/Transforms/Scalar/LoopPassManager.h"
 #include "llvm/Transforms/Scalar/SimplifyCFG.h"
 #include "llvm/Transforms/Scalar/TailRecursionElimination.h"
