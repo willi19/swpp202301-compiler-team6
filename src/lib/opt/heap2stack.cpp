@@ -1,6 +1,9 @@
 #include "heap2stack.h"
+
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Instructions.h"
+#include "llvm/Passes/PassBuilder.h"
+#include "llvm/Passes/PassPlugin.h"
 
 using namespace llvm;
 using namespace std;
@@ -189,5 +192,20 @@ PreservedAnalyses Heap2StackPass::run(Module &M, ModuleAnalysisManager &MAM) {
   }
 
   return PreservedAnalyses::all();
+}
+
+extern "C" ::llvm::PassPluginLibraryInfo llvmGetPassPluginInfo() {
+  return {LLVM_PLUGIN_API_VERSION, "SWPPHeap2Stack", "v0.1",
+          [](PassBuilder &PB) {
+            PB.registerPipelineParsingCallback(
+                [](StringRef Name, ModulePassManager &MPM,
+                   ArrayRef<PassBuilder::PipelineElement>) {
+                  if (Name == "heap2stack") {
+                    MPM.addPass(Heap2StackPass());
+                    return true;
+                  }
+                  return false;
+                });
+          }};
 }
 }; // namespace sc::opt::heap2stack
