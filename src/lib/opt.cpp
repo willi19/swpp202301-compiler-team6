@@ -3,8 +3,8 @@
 #include "../static_error.h"
 #include "opt/arithmeticpass.h"
 #include "opt/branchpredict.h"
-#include "opt/load2aload.h"
 #include "opt/heap2stack.h"
+#include "opt/load2aload.h"
 
 #include "print_ir.h"
 
@@ -12,6 +12,7 @@
 #include "llvm/IR/Verifier.h"
 #include "llvm/Transforms/Scalar/LoopPassManager.h"
 #include "llvm/Transforms/Scalar/SimplifyCFG.h"
+#include "llvm/Transforms/Scalar/TailRecursionElimination.h"
 #include "llvm/Transforms/Utils/Mem2Reg.h"
 
 using namespace std::string_literals;
@@ -38,6 +39,7 @@ optimizeIR(std::unique_ptr<llvm::Module> &&__M,
     FPM.addPass(llvm::createFunctionToLoopPassAdaptor(std::move(LPM)));
     // Add function-level opt passes below
     FPM.addPass(llvm::PromotePass());
+    FPM.addPass(llvm::TailCallElimPass());
     FPM.addPass(arithmeticpass::ArithmeticPass());
     FPM.addPass(branchpredict::BranchPredictPass());
     FPM.addPass(load2aload::Load2AloadPass());
