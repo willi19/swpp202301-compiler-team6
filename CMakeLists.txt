@@ -9,7 +9,7 @@ set(SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
 
 # Specify LLVM directory to use
-# set(LLVM_ROOT ~/swpp202301/llvm-swpp)
+set(LLVM_ROOT ~/swpp202301/llvm-swpp)
 find_package(LLVM REQUIRED CONFIG)
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVM in: ${LLVM_BINARY_DIR}")
@@ -92,6 +92,7 @@ add_opt_pass(arithmetic arithmeticpass.cpp)
 add_opt_pass(branchpredict branchpredict.cpp)
 add_opt_pass(load2aload load2aload.cpp)
 add_opt_pass(heap2stack heap2stack.cpp)
+add_opt_pass(Loop2SumPass loop2sum.cpp)
 
 # /================== DO NOT EDIT BELOW ==================/
 add_library(SCOpt ${SRC_DIR}/lib/opt.cpp)
