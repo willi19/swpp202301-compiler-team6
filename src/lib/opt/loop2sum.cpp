@@ -419,19 +419,20 @@ PreservedAnalyses Loop2SumPass::run(Loop &L, LoopAnalysisManager &LAM, LoopStand
   }
   Instruction *Branch = Vectorized->getTerminator();
   CallInst *CI = CallInst::Create(func, Summands, "", Branch);
-
-  /*
+  
   // Experiments
+  /*
   BranchInst *Br = dyn_cast<BranchInst>(Latch->getTerminator());
   ConstantInt *Condition = ConstantInt::getTrue(Latch->getContext());
   BasicBlock *Target = Br->getSuccessor(0);
   BranchInst *NewBr = BranchInst::Create(Target, Vectorized, Condition);
   ReplaceInstWithInst(Br, NewBr);
-
+  */
   BranchInst *END = dyn_cast<BranchInst>(Header->getTerminator());
   BasicBlock *ENDBLOCK = &F->getEntryBlock();
   BranchInst *VECEND = dyn_cast<BranchInst>(Vectorized->getTerminator());
   VECEND->setSuccessor(0, ENDBLOCK);
+  /*
   // Debug Zone
   
   for(Instruction &Inst: *Vectorized) {
