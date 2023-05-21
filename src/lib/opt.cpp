@@ -10,6 +10,7 @@
 
 #include "llvm/Analysis/CGSCCPassManager.h"
 #include "llvm/IR/Verifier.h"
+#include "llvm/Transforms/Scalar/GVN.h"
 #include "llvm/Transforms/Scalar/LoopPassManager.h"
 #include "llvm/Transforms/Scalar/SimplifyCFG.h"
 #include "llvm/Transforms/Scalar/TailRecursionElimination.h"
@@ -39,15 +40,16 @@ optimizeIR(std::unique_ptr<llvm::Module> &&__M,
     FPM.addPass(llvm::createFunctionToLoopPassAdaptor(std::move(LPM)));
     // Add function-level opt passes below
     FPM.addPass(llvm::PromotePass());
+    FPM.addPass(llvm::TailCallElimPass());
     FPM.addPass(arithmeticpass::ArithmeticPass());
     FPM.addPass(branchpredict::BranchPredictPass());
     FPM.addPass(load2aload::Load2AloadPass());
+    FPM.addPass(llvm::GVNPass());
 
     CGPM.addPass(llvm::createCGSCCToFunctionPassAdaptor(std::move(FPM)));
     // Add CGSCC-level opt passes below
 
     MPM.addPass(llvm::createModuleToPostOrderCGSCCPassAdaptor(std::move(CGPM)));
-    MPM.addPass(heap2stack::Heap2StackPass());
     // Add module-level opt passes below
     MPM.addPass(llvm::VerifierPass());
 
