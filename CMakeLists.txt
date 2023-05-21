@@ -91,6 +91,7 @@ endfunction()
 add_opt_pass(arithmetic arithmeticpass.cpp)
 add_opt_pass(branchpredict branchpredict.cpp)
 add_opt_pass(load2aload load2aload.cpp)
+add_opt_pass(heap2stack heap2stack.cpp)
 
 # /================== DO NOT EDIT BELOW ==================/
 add_library(SCOpt ${SRC_DIR}/lib/opt.cpp)

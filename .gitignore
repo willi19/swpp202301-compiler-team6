@@ -4,3 +4,10 @@ build
 docs
 *.s
 logs
+.clang-format
+.tmp.ll
+utils
+.verbose
+*/log-2/*
+*/log-2
+cost_graph*

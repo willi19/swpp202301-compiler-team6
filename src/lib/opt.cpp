@@ -4,6 +4,8 @@
 #include "opt/arithmeticpass.h"
 #include "opt/branchpredict.h"
 #include "opt/load2aload.h"
+#include "opt/heap2stack.h"
+
 #include "print_ir.h"
 
 #include "llvm/Analysis/CGSCCPassManager.h"
@@ -44,6 +46,7 @@ optimizeIR(std::unique_ptr<llvm::Module> &&__M,
     // Add CGSCC-level opt passes below
 
     MPM.addPass(llvm::createModuleToPostOrderCGSCCPassAdaptor(std::move(CGPM)));
+    MPM.addPass(heap2stack::Heap2StackPass());
     // Add module-level opt passes below
     MPM.addPass(llvm::VerifierPass());
 
