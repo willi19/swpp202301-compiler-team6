@@ -72,6 +72,9 @@ PreservedAnalyses Loop2SumPass::run(Loop &L, LoopAnalysisManager &LAM, LoopStand
       }
     }
   }
+  if (!Cond) {
+    return PreservedAnalyses::all();
+  }
   // Find IndVar by Iteratively BFS starting from cond, for each PHI node
   for (Instruction &Inst : *Header) {
     if (PHINode *Phi = dyn_cast<PHINode>(&Inst)) {
@@ -445,7 +448,7 @@ PreservedAnalyses Loop2SumPass::run(Loop &L, LoopAnalysisManager &LAM, LoopStand
   */
   errs() << *M;
   
-  return PreservedAnalyses::all();
+  return PreservedAnalyses::none();
 }
 
 extern "C" ::llvm::PassPluginLibraryInfo llvmGetPassPluginInfo() {

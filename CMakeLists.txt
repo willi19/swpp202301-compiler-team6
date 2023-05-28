@@ -75,7 +75,7 @@ target_link_libraries(SCBackend PRIVATE
 set(SRC_OPT_DIR ${SRC_DIR}/lib/opt)
 add_library(OptPasses INTERFACE)
 
-llvm_map_components_to_libnames(pass_llvm_libs passes analysis core support transformutils)
+llvm_map_components_to_libnames(pass_llvm_libs passes analysis core support transformutils scalaropts)
 function(add_opt_pass pass_name file_name)
     add_library(${pass_name} ${SRC_OPT_DIR}/${file_name})
     target_include_directories(${pass_name} PRIVATE ${LLVM_INCLUDE_DIRS})
@@ -93,11 +93,12 @@ add_opt_pass(branchpredict branchpredict.cpp)
 add_opt_pass(load2aload load2aload.cpp)
 add_opt_pass(heap2stack heap2stack.cpp)
 add_opt_pass(Loop2SumPass loop2sum.cpp)
+add_opt_pass(intrinsic_elim intrinsic_eliminate.cpp)
 
 # /================== DO NOT EDIT BELOW ==================/
 add_library(SCOpt ${SRC_DIR}/lib/opt.cpp)
 target_include_directories(SCOpt PRIVATE ${LLVM_INCLUDE_DIRS})
-llvm_map_components_to_libnames(opt_llvm_libs analysis passes transformutils scalaropts)
+llvm_map_components_to_libnames(opt_llvm_libs analysis passes transformutils scalaropts instcombine)
 target_link_libraries(SCOpt PRIVATE SCPrintIR OptPasses ${opt_llvm_libs})
 
 set(PROJECT_LIB "SComp")
