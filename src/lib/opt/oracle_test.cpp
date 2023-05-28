@@ -86,8 +86,11 @@ PreservedAnalyses OraclePass::run(Module &M, ModuleAnalysisManager &MAM) {
         }
         if(validLoop && LoopSize < 50&&hasLoad)
         {
-          outs()<<*L<<"\n";
-          outs()<<"LoopSize : "<<LoopSize<<" "<<L->isSafeToClone()<<"\n";
+          for (BasicBlock *BB : L->blocks()) {
+            for (Instruction &I : *BB) {
+              outs() << I << "\n";
+            }
+          }
           /*
           for (BasicBlock *BB : L->blocks()) {
             for (Instruction &I : *BB) {

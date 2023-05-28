@@ -57,7 +57,7 @@ optimizeIR(std::unique_ptr<llvm::Module> &&__M,
     // Add module-level opt passes below
     //MPM.addPass(heap2stack::Heap2StackPass());
     //MPM.addPass(llvm::VerifierPass());
-    MPM.addPass(oracle::OraclePass());
+    //MPM.addPass(oracle::OraclePass());
 
     MPM.run(*__M, __MAM);
 

@@ -13,3 +13,4 @@ utils
 cost_graph*
 llvm/*
 log/*
+*.log

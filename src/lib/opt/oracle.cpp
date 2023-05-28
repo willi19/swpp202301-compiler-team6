@@ -133,14 +133,20 @@ PreservedAnalyses OraclePass::run(Module &M, ModuleAnalysisManager &MAM) {
 
 
   Loop* L = oracle_loop[0];
+  BasicBlock *exitBlock = L->getExitBlock();
   vector<Value *> replacedoperand; 
   bool hasouterPhiNode = false;
-
+  
   for(BasicBlock *BB : L->blocks()) {
     for (Instruction &I : *BB) {
       for (Value *operand : I.operands()) {
-        Instruction *operandInst = dyn_cast<Instruction>(operand);
-        if (operandInst && !L->contains(operandInst)) {
+        if(Instruction *operandInst = dyn_cast<Instruction>(operand)){
+          if (operandInst && !L->contains(operandInst)) {
+            replacedoperand.push_back(operand);
+          }
+        }
+        else if(Argument *arg = dyn_cast<Argument>(operand))
+        {
           replacedoperand.push_back(operand);
         }
       }
@@ -154,7 +160,8 @@ PreservedAnalyses OraclePass::run(Module &M, ModuleAnalysisManager &MAM) {
       }
     }
   }
-
+  
+  //generate oracle function
   LLVMContext &context = M.getContext();
   Type *returnType = Type::getVoidTy(context);
   std::vector<Type *> paramTypes; // Fill in the parameter types
@@ -164,59 +171,93 @@ PreservedAnalyses OraclePass::run(Module &M, ModuleAnalysisManager &MAM) {
   FunctionType *functionType = FunctionType::get(returnType, paramTypes, false);
   Function *oracleFunction = Function::Create(functionType, Function::ExternalLinkage, "oracle", &M);
   BasicBlock* entryBlock = BasicBlock::Create(context, "entry", oracleFunction);
-  IRBuilder<> builder(entryBlock);
-  builder.CreateRetVoid();
-    
-  /*
-  if(hasouterPhiNode)
+  IRBuilder<> entrybuilder(entryBlock);
+
+  BasicBlock* retBlock = BasicBlock::Create(context, "ret", oracleFunction);
+  IRBuilder<> retbuilder(retBlock);
+  retbuilder.CreateRetVoid();
+  //Start copying
+  ValueToValueMapTy valueMap;   
+  std::map<BasicBlock*, BasicBlock*> blockMap;
+  blockMap[exitBlock] = retBlock; 
+
+  for (BasicBlock *BB : L->blocks())
   {
-    BasicBlock* entryBlock = BasicBlock::Create(context, "entry", oracleFunction);
-    IRBuilder<> builder(entryBlock);
-    builder.CreateRetVoid();
-    
-    for(BasicBlock *BB : L->blocks()) {
-      for (Instruction &I : *BB) {
-        if (PHINode* phiNode = dyn_cast<PHINode>(&I)) {
-          for (unsigned i = 0; i < phiNode->getNumIncomingValues(); ++i) {
-            BasicBlock* incomingBlock = phiNode->getIncomingBlock(i);
-            if (!(L->contains(incomingBlock))) {
-              phiNode->setIncomingBlock(i, incomingBlock);
+    BasicBlock *NewBB = BasicBlock::Create(context, BB->getName()+".oracle", oracleFunction);
+    blockMap[BB] = NewBB;
+    IRBuilder<> Builder(NewBB);
+    if(BB==L->getHeader())
+    {
+      entrybuilder.CreateBr(NewBB);
+    }
+
+    for (Instruction &I : *BB) 
+    {
+      Instruction *NewInst = I.clone();
+      if (I.hasName())
+        NewInst->setName(I.getName()+".oracle");
+
+      //NewInst->insertInto(NewBB, NewBB->end());
+      Builder.Insert(NewInst);
+      valueMap[&I] = NewInst; // Add instruction map to value.
+    }
+  }  
+  //update operands for new function
+  //replacedoperand => to arg
+  //if inside valueMap then value map
+  
+  for (BasicBlock& basicBlock : *oracleFunction) {
+    for (Instruction &I : basicBlock) {
+      for (Use &U : I.operands()) {
+        if (Value *operand = dyn_cast<Value>(U)) {
+          if (valueMap.count(operand)) {
+            U.set(valueMap[operand]);
+          }
+          else
+          {
+            for(int i=0;i<replacedoperand.size();i++)//Value* replaced:replacedoperand)
+            {
+              if(operand == replacedoperand[i])
+              {
+                Argument *arg = oracleFunction->getArg(i);
+                U.set(arg);
+                break;
+              }
             }
           }
         }
       }
-    }
-  }
-  */
-  /*
-  for(int i=0;i<replacedoperand.size();i++)//Value* replaced:replacedoperand)
-  {
-    Value * replaced = replacedoperand[i];
-    Value* replacearg = &oracleFunction->arg_begin()[i];
-    for (BasicBlock *BB : L->blocks()) {
-      for (Instruction &I : *BB) {
-        for (Use &U : I.operands()) {
-          if (U.get() == replaced) {
-            U.set(replacearg);
+
+      if (PHINode* phiNode = dyn_cast<PHINode>(&I)) {
+        for (unsigned i = 0; i < phiNode->getNumIncomingValues(); ++i) {
+          BasicBlock* incomingBlock = phiNode->getIncomingBlock(i);
+          if (!(L->contains(incomingBlock))) {
+            phiNode->setIncomingBlock(i,entryBlock);
+          }
+          else
+          {
+            BasicBlock *newSuccessor = blockMap[incomingBlock];
+            phiNode->setIncomingBlock(i, newSuccessor);
+          }
+        }
+      }
+      
+      if (BranchInst *branchInst = dyn_cast<BranchInst>(&I)) {
+        for (unsigned i = 0; i < branchInst->getNumSuccessors(); ++i) {
+          BasicBlock *originalSuccessor = branchInst->getSuccessor(i);
+          // Update the successor basic block
+          BasicBlock *newSuccessor = blockMap[originalSuccessor];
+          if(newSuccessor) {
+            branchInst->setSuccessor(i, newSuccessor);
           }
         }
       }
     }
   }
-  */
+  
   Function *curFunc = L->getHeader()->getParent();
-  /*
-  ValueToValueMapTy valueMap;
-  for (BasicBlock *BB : L->blocks()) {
-    BasicBlock *ClonedBB = BasicBlock::Create(BB->getContext(), BB->getName());
-    valueMap[BB] = ClonedBB;
-  }
-    
-  for (BasicBlock *BB : L->blocks())
-  {
-    BasicBlock *NewBB = CloneBasicBlock(BB, valueMap, "", oracleFunction);
-  }
-  */
+  //change for loop to oracle
+  vector<Instruction *> loopentrybranch;
   for (BasicBlock& basicBlock : *curFunc) {
     if(L->contains(&basicBlock))
     {
@@ -224,30 +265,63 @@ PreservedAnalyses OraclePass::run(Module &M, ModuleAnalysisManager &MAM) {
     }
     if (BranchInst* branchInst = dyn_cast<BranchInst>(basicBlock.getTerminator())) {
       if (!(branchInst->isConditional())) {
-        // Conditional branch instruction
-        ArrayRef<Value*> args(replacedoperand.data(),replacedoperand.size());  // Arguments for the function call
-        CallInst* callInst = CallInst::Create(oracleFunction, args);
-        BasicBlock *exitBlock = L->getExitBlock();
+        ArrayRef<Value*> args(replacedoperand.data(),replacedoperand.size());
+        
 
         BasicBlock *successor = branchInst->getSuccessor(0);
         BasicBlock *headerBlock = L->getHeader();
-        outs()<<"asdf\n";
-        // Check if the successor is the header block
         if (successor == headerBlock) {
-          branchInst->eraseFromParent();
+          
           IRBuilder<> Builder(&basicBlock);
-          // Replace the branch instruction with the function call
+          Builder.SetInsertPoint(branchInst);
+          
           CallInst *call = Builder.CreateCall(oracleFunction, args);
-          Builder.CreateBr(exitBlock);
+          loopentrybranch.push_back(branchInst);
         }
       }
     }
   }
-  
-  /*
-  LoopInfo &LI = FAM.getResult<LoopAnalysis>(*curFunc);
-  std::vector<BasicBlock*> blocks_to_remove;
 
+  
+  for(auto bI:loopentrybranch)
+  {
+    bI->setSuccessor(0,exitBlock);
+  }
+
+  
+  //Remove original Loop
+  LoopInfo &LI = FAM.getResult<LoopAnalysis>(*curFunc);
+  for(BasicBlock *BB : L->blocks()) {
+    for (Instruction &I : *BB) {
+      outs()<<I<<"\n";
+      if (PHINode* phiNode = dyn_cast<PHINode>(&I)) {
+          Type *phiType = phiNode->getType();
+          Constant *zeroValue = Constant::getNullValue(phiType);
+          phiNode->replaceAllUsesWith(zeroValue);  
+      }
+    }
+  }
+
+  while (true)
+  {
+    vector<Instruction *> removeInst;
+    for(BasicBlock *BB : L->blocks()) {
+      for (Instruction &I : *BB) {
+        unsigned numUsers = I.getNumUses();
+        //outs()<<I<<" "<<numUsers<<"numuses\n";
+        if(numUsers==0) {
+          removeInst.push_back(&I);
+        }
+      }
+    }
+    if(removeInst.size()==0)
+      break;
+    for(Instruction * I : removeInst)
+      I->eraseFromParent();
+  }
+
+
+  std::vector<BasicBlock*> blocks_to_remove;
   for (auto BBI = L->block_begin(), BBE = L->block_end(); BBI != BBE; ++BBI) {
       BasicBlock* BB = *BBI;
       blocks_to_remove.push_back(BB);
@@ -257,7 +331,8 @@ PreservedAnalyses OraclePass::run(Module &M, ModuleAnalysisManager &MAM) {
   for (BasicBlock* BB : blocks_to_remove) {
       LI.removeBlock(BB);  // Remove block from LoopInfo
       BB->eraseFromParent();  // Remove block from its parent function
-  }*/
+  }
+  
   return PreservedAnalyses::all();
 }
 
