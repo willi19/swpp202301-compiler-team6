@@ -88,11 +88,7 @@ function(add_opt_pass pass_name file_name)
 endfunction()
 
 # /================= ADD OPT PASSES BELOW ================/
-add_opt_pass(arithmetic arithmeticpass.cpp)
-add_opt_pass(branchpredict branchpredict.cpp)
-add_opt_pass(load2aload load2aload.cpp)
-add_opt_pass(heap2stack heap2stack.cpp)
-add_opt_pass(Loop2SumPass loop2sum.cpp)
+add_opt_pass(oracle oracle.cpp)
 
 # /================== DO NOT EDIT BELOW ==================/
 add_library(SCOpt ${SRC_DIR}/lib/opt.cpp)
@@ -134,22 +130,3 @@ enable_testing()
 # Add tests, subdirectories, etc below
 # Tests for custom passes are added through add_opt_pass
 
-add_test(NAME simplifycfg
-    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/utils/testpass.sh
-        ${LLVM_TOOLS_BINARY_DIR} simplifycfg
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-
-add_test(NAME mem2reg
-    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/utils/testpass.sh
-        ${LLVM_TOOLS_BINARY_DIR} mem2reg
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-
-add_test(NAME tailcallelim
-    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/utils/testpass.sh
-        ${LLVM_TOOLS_BINARY_DIR} tailcallelim
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-
-add_test(NAME gvn
-    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/utils/testpass.sh
-        ${LLVM_TOOLS_BINARY_DIR} gvn
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})

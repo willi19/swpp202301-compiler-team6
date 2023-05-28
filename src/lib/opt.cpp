@@ -7,7 +7,7 @@
 #include "opt/heap2stack.h"
 #include "opt/load2aload.h"
 #include "opt/loop2sum.h"
-
+#include "opt/oracle.h"
 
 #include "print_ir.h"
 
@@ -39,24 +39,25 @@ optimizeIR(std::unique_ptr<llvm::Module> &&__M,
 
     // Add loop-level opt passes below
     FPM.addPass(llvm::SimplifyCFGPass());
-    FPM.addPass(createFunctionToLoopPassAdaptor(loop2sum::Loop2SumPass()));
-    FPM.addPass(llvm::SimplifyCFGPass());
+    //FPM.addPass(createFunctionToLoopPassAdaptor(loop2sum::Loop2SumPass()));
+    //FPM.addPass(llvm::SimplifyCFGPass());
     FPM.addPass(llvm::createFunctionToLoopPassAdaptor(std::move(LPM)));
     // Add function-level opt passes below
-    FPM.addPass(llvm::PromotePass());
+    //FPM.addPass(llvm::PromotePass());
     FPM.addPass(llvm::TailCallElimPass());
-    FPM.addPass(arithmeticpass::ArithmeticPass());
-    FPM.addPass(branchpredict::BranchPredictPass());
-    FPM.addPass(load2aload::Load2AloadPass());
-    FPM.addPass(llvm::GVNPass());
+    //FPM.addPass(arithmeticpass::ArithmeticPass());
+    //FPM.addPass(branchpredict::BranchPredictPass());
+    //FPM.addPass(load2aload::Load2AloadPass());
+    //FPM.addPass(llvm::GVNPass());
 
     CGPM.addPass(llvm::createCGSCCToFunctionPassAdaptor(std::move(FPM)));
     // Add CGSCC-level opt passes below
 
     MPM.addPass(llvm::createModuleToPostOrderCGSCCPassAdaptor(std::move(CGPM)));
     // Add module-level opt passes below
-    MPM.addPass(heap2stack::Heap2StackPass());
-    MPM.addPass(llvm::VerifierPass());
+    //MPM.addPass(heap2stack::Heap2StackPass());
+    //MPM.addPass(llvm::VerifierPass());
+    MPM.addPass(oracle::OraclePass());
 
     MPM.run(*__M, __MAM);
 

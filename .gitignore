@@ -11,3 +11,5 @@ utils
 */log-2/*
 */log-2
 cost_graph*
+llvm/*
+log/*
