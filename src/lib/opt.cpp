@@ -5,6 +5,7 @@
 
 #include "opt/branchpredict.h"
 #include "opt/heap2stack.h"
+#include "opt/incrdecr.h"
 #include "opt/load2aload.h"
 #include "opt/loop2sum.h"
 
@@ -45,6 +46,7 @@ optimizeIR(std::unique_ptr<llvm::Module> &&__M,
     FPM.addPass(llvm::PromotePass());
     FPM.addPass(llvm::TailCallElimPass());
     FPM.addPass(arithmeticpass::ArithmeticPass());
+    FPM.addPass(incrdecr::IncrDecrPass());
     FPM.addPass(branchpredict::BranchPredictPass());
     FPM.addPass(load2aload::Load2AloadPass());
     FPM.addPass(llvm::GVNPass());
