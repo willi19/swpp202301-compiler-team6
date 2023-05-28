@@ -14,3 +14,6 @@ cost_graph*
 *.log
 llvm/*
 log/*
+llvm/*
+log/*
+*.log
