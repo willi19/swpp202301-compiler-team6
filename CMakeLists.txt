@@ -128,4 +128,7 @@ endif (DOXYGEN_FOUND)
 enable_testing()
 # Add tests, subdirectories, etc below
 # Tests for custom passes are added through add_opt_pass
-
+add_test(NAME oracle
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/utils/testpass.sh
+        ${LLVM_TOOLS_BINARY_DIR} oracle
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
