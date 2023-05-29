@@ -88,7 +88,7 @@ function(add_opt_pass pass_name file_name)
 endfunction()
 
 # /================= ADD OPT PASSES BELOW ================/
-
+add_opt_pass(oracle oracle.cpp)
 # /================== DO NOT EDIT BELOW ==================/
 add_library(SCOpt ${SRC_DIR}/lib/opt.cpp)
 target_include_directories(SCOpt PRIVATE ${LLVM_INCLUDE_DIRS})
