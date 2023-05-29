@@ -1,4 +1,4 @@
-; CHECK: oracle
+; CHECK: @oracle
 define dso_local i8* @malloc_upto_8(i64 noundef %x) #0 {
 entry:
   %add = add i64 %x, 7

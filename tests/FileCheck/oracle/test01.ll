@@ -18,7 +18,7 @@ declare noalias i8* @malloc(i64 noundef) #1
 
 ; Function Attrs: nounwind uwtable
 define dso_local i32 @main() #0 {
-; CHECK-NOT: oracle
+; CHECK-NOT: @oracle
 entry:
   %call = call i64 (...) @read()
   %mul = mul i64 4, %call

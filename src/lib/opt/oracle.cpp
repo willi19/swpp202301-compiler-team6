@@ -107,7 +107,7 @@ PreservedAnalyses OraclePass::run(Module &M, ModuleAnalysisManager &MAM) {
   }
 
   if (OracleLoop.size() == 0)
-    return PreservedAnalyses::all();
+    return PreservedAnalyses::none();
 
   Loop *L = OracleLoop[0];
   BasicBlock *exitBlock = L->getExitBlock();
@@ -289,7 +289,7 @@ PreservedAnalyses OraclePass::run(Module &M, ModuleAnalysisManager &MAM) {
     BB->eraseFromParent(); // Remove block from its parent function
   }
 
-  return PreservedAnalyses::all();
+  return PreservedAnalyses::none();
 }
 
 extern "C" ::llvm::PassPluginLibraryInfo llvmGetPassPluginInfo() {
