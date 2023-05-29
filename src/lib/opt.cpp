@@ -39,7 +39,7 @@ optimizeIR(std::unique_ptr<llvm::Module> &&__M,
 
     // Add loop-level opt passes below
     FPM.addPass(llvm::SimplifyCFGPass());
-    FPM.addPass(createFunctionToLoopPassAdaptor(loop2sum::Loop2SumPass()));
+//    FPM.addPass(createFunctionToLoopPassAdaptor(loop2sum::Loop2SumPass()));
     FPM.addPass(llvm::SimplifyCFGPass());
     FPM.addPass(llvm::createFunctionToLoopPassAdaptor(std::move(LPM)));
     // Add function-level opt passes below

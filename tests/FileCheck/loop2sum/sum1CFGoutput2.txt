@@ -1,0 +1,74 @@
+define i32 @main() {
+entry:
+  %a = alloca [20 x i64], align 16
+  br label %for.cond
+
+for.cond:                                         ; preds = %for.body, %entry
+  %i.0 = phi i64 [ 0, %entry ], [ %inc, %for.body ]
+  %cmp = icmp ult i64 %i.0, 20
+  br i1 %cmp, label %for.body, label %for.cond1.preheader
+
+for.cond1.preheader:                              ; preds = %for.cond
+  br label %for.cond1
+
+for.body:                                         ; preds = %for.cond
+  %mul = mul i64 %i.0, %i.0
+  %arrayidx = getelementptr inbounds [20 x i64], [20 x i64]* %a, i64 0, i64 %i.0
+  store i64 %mul, i64* %arrayidx, align 8
+  %inc = add i64 %i.0, 1
+  br label %for.cond
+
+for.cond1:                                        ; preds = %for.body3.vec, %for.cond1.preheader
+  %i.1 = phi i64 [ 0, %for.cond1.preheader ], [ %inc6.vec6, %for.body3.vec ]
+  %sum.0 = phi i64 [ 0, %for.cond1.preheader ], [ %add.vec, %for.body3.vec ]
+  %.new = sub i64 20, 7
+  %cmp2 = icmp ult i64 %i.1, %.new
+  br i1 %cmp2, label %for.body3.vec, label %for.cond1.sca
+
+for.body3:                                        ; preds = %for.cond1.sca
+  %arrayidx4 = getelementptr inbounds [20 x i64], [20 x i64]* %a, i64 0, i64 %i.1.sca
+  %QYXV = load i64, i64* %arrayidx4, align 8
+  %add = add i64 %sum.0.sca, %QYXV
+  %inc6 = add i64 %i.1.sca, 1
+  br label %for.cond1.sca
+
+for.end7:                                         ; preds = %for.cond1.sca
+  %sum.0.lcssa = phi i64 [ %sum.0.sca, %for.cond1.sca ]
+  call void @write(i64 noundef %sum.0.lcssa)
+  ret i32 0
+
+for.body3.vec:                                    ; preds = %for.cond1
+  %arrayidx4.vec0 = getelementptr inbounds [20 x i64], [20 x i64]* %a, i64 0, i64 %i.1
+  %QYXV.vec0 = load i64, i64* %arrayidx4.vec0, align 8
+  %inc6.vec0 = add i64 %i.1, 1
+  %arrayidx4.vec1 = getelementptr inbounds [20 x i64], [20 x i64]* %a, i64 0, i64 %inc6.vec0
+  %QYXV.vec1 = load i64, i64* %arrayidx4.vec1, align 8
+  %inc6.vec1 = add i64 %inc6.vec0, 1
+  %arrayidx4.vec2 = getelementptr inbounds [20 x i64], [20 x i64]* %a, i64 0, i64 %inc6.vec1
+  %QYXV.vec2 = load i64, i64* %arrayidx4.vec2, align 8
+  %inc6.vec2 = add i64 %inc6.vec1, 1
+  %arrayidx4.vec3 = getelementptr inbounds [20 x i64], [20 x i64]* %a, i64 0, i64 %inc6.vec2
+  %QYXV.vec3 = load i64, i64* %arrayidx4.vec3, align 8
+  %inc6.vec3 = add i64 %inc6.vec2, 1
+  %arrayidx4.vec4 = getelementptr inbounds [20 x i64], [20 x i64]* %a, i64 0, i64 %inc6.vec3
+  %QYXV.vec4 = load i64, i64* %arrayidx4.vec4, align 8
+  %inc6.vec4 = add i64 %inc6.vec3, 1
+  %arrayidx4.vec5 = getelementptr inbounds [20 x i64], [20 x i64]* %a, i64 0, i64 %inc6.vec4
+  %QYXV.vec5 = load i64, i64* %arrayidx4.vec5, align 8
+  %inc6.vec5 = add i64 %inc6.vec4, 1
+  %arrayidx4.vec6 = getelementptr inbounds [20 x i64], [20 x i64]* %a, i64 0, i64 %inc6.vec5
+  %QYXV.vec6 = load i64, i64* %arrayidx4.vec6, align 8
+  %inc6.vec6 = add i64 %inc6.vec5, 1
+  %add.vec = call i64 @int_sum_i64(i64 %sum.0, i64 %QYXV.vec0, i64 %QYXV.vec1, i64 %QYXV.vec2, i64 %QYXV.vec3, i64 %QYXV.vec4, i64 %QYXV.vec5, i64 %QYXV.vec6)
+  br label %for.cond1
+
+for.cond1.sca:                                    ; preds = %for.body3, %for.cond1
+  %i.1.sca = phi i64 [ %inc6, %for.body3 ], [ %i.1, %for.cond1 ]
+  %sum.0.sca = phi i64 [ %add, %for.body3 ], [ %sum.0, %for.cond1 ]
+  %cmp2.sca = icmp ult i64 %i.1.sca, 20
+  br i1 %cmp2.sca, label %for.body3, label %for.end7
+}
+
+declare void @write(i64 noundef)
+
+declare i64 @int_sum_i64(i64, i64, i64, i64, i64, i64, i64, i64)
