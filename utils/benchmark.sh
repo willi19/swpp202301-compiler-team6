@@ -2,9 +2,9 @@
 
 set -Eeu
 
-compiler='./build/swpp-compiler'
-interp='../swpp202301-interpreter/build/swpp-interpreter'
-bmdir='../swpp202301-benchmarks'
+compiler=$1
+interp=$2
+bmdir=$3
 logdir=${4:-logs}
 
 # (cd "$bmdir" && "$bmdir"/build-asms.py "$compiler")
