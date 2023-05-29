@@ -3,8 +3,6 @@
 
 #include "llvm/IR/PassManager.h"
 
-const int REGISTER_CNT = 32;
-
 namespace sc::opt::functioninline {
 class FunctionInlinePass : public llvm::PassInfoMixin<FunctionInlinePass> {
 public:
