@@ -107,7 +107,7 @@ PreservedAnalyses OraclePass::run(Module &M, ModuleAnalysisManager &MAM) {
   }
 
   if (OracleLoop.size() == 0)
-    return PreservedAnalyses::none();
+    return PreservedAnalyses::all();
 
   Loop *L = OracleLoop[0];
   BasicBlock *exitBlock = L->getExitBlock();
@@ -133,6 +133,8 @@ PreservedAnalyses OraclePass::run(Module &M, ModuleAnalysisManager &MAM) {
     }
   }
 
+  if(paramTypes.size() > 16)
+    return PreservedAnalyses::all();
   // generate oracle function
   Type *returnType = Type::getVoidTy(context);
   FunctionType *functionType = FunctionType::get(returnType, paramTypes, false);
