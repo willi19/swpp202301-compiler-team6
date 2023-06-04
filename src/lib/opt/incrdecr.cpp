@@ -119,13 +119,13 @@ PreservedAnalyses IncrDecrPass::run(Function &F, FunctionAnalysisManager &FAM) {
       if (!isIncr and !isDecr)
         continue;
 
-	  // Regarding Oracle
-	  if(F.getName() == "oracle") {
-	    // Will be modified to n > 1 when incr/decr allowed in oracle
-		if(n > 0) {
-		  continue;
-		}
-	  }
+      // Regarding Oracle
+      if (F.getName() == "oracle") {
+        // Will be modified to n > 1 when incr/decr allowed in oracle
+        if (n > 0) {
+          continue;
+        }
+      }
       ReplaceInst.push_back(&I);
       UsedVal.push_back(V);
       IncOrDec.push_back(isIncr ? 1 : 0);
