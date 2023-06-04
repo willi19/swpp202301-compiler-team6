@@ -456,15 +456,15 @@ PreservedAnalyses Loop2SumPass::run(Loop &L, LoopAnalysisManager &LAM,
   // Adjust PHINodes
   SubIndVar->addIncoming(IndVar, Header);
   SubAccVar->addIncoming(AccVar, Header);
- if(SubIndVar->getIncomingBlock(unsigned(0)) == Scalarized) {
+  if (SubIndVar->getIncomingBlock(unsigned(0)) == Scalarized) {
     SubIndVar->removeIncomingValue(unsigned(1));
-  }
-  else SubIndVar->removeIncomingValue(unsigned(0));
+  } else
+    SubIndVar->removeIncomingValue(unsigned(0));
 
-  if(SubAccVar->getIncomingBlock(unsigned(0)) == Scalarized) {
+  if (SubAccVar->getIncomingBlock(unsigned(0)) == Scalarized) {
     SubAccVar->removeIncomingValue(unsigned(1));
-  }
-  else SubIndVar->removeIncomingValue(unsigned(0));
+  } else
+    SubIndVar->removeIncomingValue(unsigned(0));
 
   // Data Dependencies in SubHeader
   for (BasicBlock::iterator it = SubHeader->begin(); it != SubHeader->end();
@@ -500,7 +500,7 @@ PreservedAnalyses Loop2SumPass::run(Loop &L, LoopAnalysisManager &LAM,
   for (Instruction &I : *Header) {
     if (PHINode *Phi = dyn_cast<PHINode>(&I)) {
       BasicBlock *IncomingBlock1 = Phi->getIncomingBlock(unsigned(0));
-	  BasicBlock *IncomingBlock2 = Phi->getIncomingBlock(unsigned(1));
+      BasicBlock *IncomingBlock2 = Phi->getIncomingBlock(unsigned(1));
       if (IncomingBlock1 == Scalarized) {
         if (Phi == IndVar) {
           Phi->removeIncomingValue(unsigned(0));
@@ -511,16 +511,16 @@ PreservedAnalyses Loop2SumPass::run(Loop &L, LoopAnalysisManager &LAM,
           Phi->addIncoming(CI, Vectorized);
         }
       }
-	  if(IncomingBlock2 == Scalarized) {
-	    if(Phi==IndVar) {
-		  Phi->removeIncomingValue(unsigned(1));
-		  Phi->addIncoming(CurIndVar, Vectorized);
-		}
-		if(Phi == AccVar) {
-		  Phi->removeIncomingValue(unsigned(1));
-		  Phi->addIncoming(CI, Vectorized);
-		}
-	  }
+      if (IncomingBlock2 == Scalarized) {
+        if (Phi == IndVar) {
+          Phi->removeIncomingValue(unsigned(1));
+          Phi->addIncoming(CurIndVar, Vectorized);
+        }
+        if (Phi == AccVar) {
+          Phi->removeIncomingValue(unsigned(1));
+          Phi->addIncoming(CI, Vectorized);
+        }
+      }
     }
   }
 
