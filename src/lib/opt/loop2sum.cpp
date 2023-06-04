@@ -15,9 +15,9 @@
 #include "llvm/Passes/PassPlugin.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/Scalar/LoopPassManager.h"
+#include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include "llvm/Transforms/Utils/Cloning.h"
 #include "llvm/Transforms/Utils/LoopUtils.h"
-#include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include <queue>
 #include <string>
 #include <unordered_set>
@@ -26,13 +26,14 @@ using namespace llvm;
 using namespace std;
 
 namespace sc::opt::loop2sum {
-PreservedAnalyses Loop2SumPass::run(Loop &L, LoopAnalysisManager &LAM, LoopStandardAnalysisResults &AR, LPMUpdater &U) {
+PreservedAnalyses Loop2SumPass::run(Loop &L, LoopAnalysisManager &LAM,
+                                    LoopStandardAnalysisResults &AR,
+                                    LPMUpdater &U) {
   // Get the loop header and latch
   BasicBlock *Header = L.getHeader();
   BasicBlock *Latch = L.getLoopLatch();
   Module *M = Header->getModule();
   Function *F = Header->getParent();
-  ValueSymbolTable &Symbol = M->getValueSymbolTable();
 
   // There is a myriad of loop structures, since there are branches
   // Hence, first simplify the 'simple types' by SimplifyCFG.
@@ -185,7 +186,9 @@ PreservedAnalyses Loop2SumPass::run(Loop &L, LoopAnalysisManager &LAM, LoopStand
   }
   CmpInst *Cmp = dyn_cast<CmpInst>(Cond);
   auto Operator = Cmp->getPredicate();
-  if (Operator != CmpInst::ICMP_SLT and Operator != CmpInst::ICMP_ULT) {
+  if (Operator != CmpInst::ICMP_SLT and Operator != CmpInst::ICMP_ULT and
+      Operator != CmpInst::ICMP_SLE and Operator != CmpInst::ICMP_ULE and
+      Operator != CmpInst::ICMP_NE) {
     return PreservedAnalyses::all();
   }
   if (Cmp->getOperand(0) != IndVar and Cmp->getOperand(1) != IndVar) {
@@ -238,25 +241,24 @@ PreservedAnalyses Loop2SumPass::run(Loop &L, LoopAnalysisManager &LAM, LoopStand
     }
     // %0 or empty name is toxic name
     if (I.getName() == "0" or I.getName() == "") {
-      I.setName("QYXV"+I.getName());
+      I.setName("QYXV" + I.getName());
     }
   }
 
-  
   // Check if the Accumulator Variable is used in only one instruction per loop.
   int AccVarCount = 0;
   int AccTmpCount = 0;
   for (Instruction &I : *Latch) {
     for (Use &OP : I.operands()) {
-	  if (OP.get() == AccVar) {
-	    AccVarCount++;
-	  }
-	  if (OP.get() == AccTmp) {
-	    AccTmpCount++;
-	  }
-	}
+      if (OP.get() == AccVar) {
+        AccVarCount++;
+      }
+      if (OP.get() == AccTmp) {
+        AccTmpCount++;
+      }
+    }
   }
-  if(AccVarCount > 1 or AccTmpCount > 0) {
+  if (AccVarCount > 1 or AccTmpCount > 0) {
     return PreservedAnalyses::all();
   }
 
@@ -264,16 +266,14 @@ PreservedAnalyses Loop2SumPass::run(Loop &L, LoopAnalysisManager &LAM, LoopStand
   // Each cloned variable has a ".vec(i)" suffix in its name.
   BasicBlock *Vectorized = BasicBlock::Create(
       Latch->getContext(), Latch->getName() + ".vec", Latch->getParent());
- 
+
   for (int i = 0; i < 7; ++i) {
     for (Instruction &Inst : *Latch) {
       if (BranchInst *Branch = dyn_cast<BranchInst>(&Inst))
         break;
       Instruction *ClonedInst = Inst.clone();
       ClonedInst->setName(Inst.getName() + ".vec" + to_string(i));
-	  //Symbol.reinsertValue(ClonedInst, ClonedInst->getName(), Inst);
       Vectorized->getInstList().push_back(ClonedInst);
-	  // Symbol.createValueName(ClonedInst->getName(), ClonedInst);
     }
   }
   if (Latch->getTerminator()) {
@@ -349,7 +349,7 @@ PreservedAnalyses Loop2SumPass::run(Loop &L, LoopAnalysisManager &LAM, LoopStand
       }
     }
   }
- 
+
   // Change adds to sum.
   // Collect all summands, remove add instructions using Accumulator Variable.
   vector<Value *> Summands;
@@ -376,7 +376,6 @@ PreservedAnalyses Loop2SumPass::run(Loop &L, LoopAnalysisManager &LAM, LoopStand
   unsigned int BitWidth = AccIntTy->getBitWidth();
   vector<Type *> argTypes(8, Summands[0]->getType());
   FunctionType *funcType = nullptr;
-  //Module *M = Vectorized->getModule();
   Function *func = nullptr;
   if (BitWidth == 1) {
     funcType = FunctionType::get(Type::getInt1Ty(Vectorized->getContext()),
@@ -421,33 +420,149 @@ PreservedAnalyses Loop2SumPass::run(Loop &L, LoopAnalysisManager &LAM, LoopStand
     }
   }
   Instruction *Branch = Vectorized->getTerminator();
-  CallInst *CI = CallInst::Create(func, Summands, "", Branch);
-  
-  // Experiments
-  /*
-  BranchInst *Br = dyn_cast<BranchInst>(Latch->getTerminator());
-  ConstantInt *Condition = ConstantInt::getTrue(Latch->getContext());
-  BasicBlock *Target = Br->getSuccessor(0);
-  BranchInst *NewBr = BranchInst::Create(Target, Vectorized, Condition);
-  ReplaceInstWithInst(Br, NewBr);
-  */
-  BranchInst *END = dyn_cast<BranchInst>(Header->getTerminator());
-  BasicBlock *ENDBLOCK = &F->getEntryBlock();
-  BranchInst *VECEND = dyn_cast<BranchInst>(Vectorized->getTerminator());
-  VECEND->setSuccessor(0, ENDBLOCK);
-  /*
-  // Debug Zone
-  
-  for(Instruction &Inst: *Vectorized) {
-    errs() << Inst << "\n";
+  CallInst *CI =
+      CallInst::Create(func, Summands, AccTmp->getName() + ".vec", Branch);
+
+  // SPRINT 3 ZONE (Part 2)
+  // Make a SubHeader(Scalarized Part) and connect each basic blocks
+  BasicBlock *Scalarized = Latch;
+  BasicBlock *EndBlock = nullptr;
+
+  // Get End Block
+  for (auto SI = succ_begin(Header), SE = succ_end(Header); SI != SE; ++SI) {
+    BasicBlock *SuccessorBB = *SI;
+    if (SuccessorBB != Latch) {
+      EndBlock = SuccessorBB;
+    }
   }
-  errs() << "Approached here\n";
-  // Insert Vectorized Block to the function
-  Function *ParentF = Header->getParent();
-  L.addBasicBlockToLoop(Vectorized, AR.LI);
-  */
+
+  // Make SubHeader Block
+  PHINode *SubIndVar = nullptr;
+  PHINode *SubAccVar = nullptr;
+  BasicBlock *SubHeader = BasicBlock::Create(
+      Header->getContext(), Header->getName() + ".sca", Header->getParent());
+  for (Instruction &I : *Header) {
+    Instruction *ClonedInst = I.clone();
+    PHINode *Phi = dyn_cast<PHINode>(&I);
+    if (!I.getType()->isVoidTy()) {
+      ClonedInst->setName(I.getName() + ".sca");
+    }
+    if (Phi == IndVar) {
+      SubIndVar = dyn_cast<PHINode>(ClonedInst);
+    }
+    if (Phi == AccVar) {
+      SubAccVar = dyn_cast<PHINode>(ClonedInst);
+    }
+    SubHeader->getInstList().push_back(ClonedInst);
+  }
+
+  // Adjust PHINodes
+  SubIndVar->addIncoming(IndVar, Header);
+  SubAccVar->addIncoming(AccVar, Header);
+  if (SubIndVar->getIncomingBlock(unsigned(0)) == Scalarized) {
+    SubIndVar->removeIncomingValue(unsigned(1));
+  } else
+    SubIndVar->removeIncomingValue(unsigned(0));
+
+  if (SubAccVar->getIncomingBlock(unsigned(0)) == Scalarized) {
+    SubAccVar->removeIncomingValue(unsigned(1));
+  } else
+    SubIndVar->removeIncomingValue(unsigned(0));
+
+  // Data Dependencies in SubHeader
+  for (BasicBlock::iterator it = SubHeader->begin(); it != SubHeader->end();
+       ++it) {
+    Instruction *CurInst = &(*it);
+    string CurName = CurInst->getName().str();
+    Value *CurVar = CurInst;
+    for (BasicBlock::iterator it2 = next(it); it2 != SubHeader->end(); ++it2) {
+      Instruction *NextInst = &(*it2);
+      for (Use &OP : NextInst->operands()) {
+        if (OP->hasName()) {
+          if (OP->getName() == CurName.substr(0, CurName.size() - 4)) {
+            OP.set(CurVar);
+          }
+        }
+      }
+    }
+  }
+
+  // Adjust PHINode in EndBlock, Guaranteed to income by PHINode because of
+  // LCSSA
+  for (Instruction &I : *EndBlock) {
+    if (PHINode *Phi = dyn_cast<PHINode>(&I)) {
+      Value *EndIncoming = Phi->getIncomingValue(unsigned(0));
+      if (EndIncoming == AccVal) {
+        Phi->addIncoming(SubAccVar, SubHeader);
+        Phi->removeIncomingValue(unsigned(0));
+      }
+    }
+  }
+
+  // Adjust PHINodes in Header
+  for (Instruction &I : *Header) {
+    if (PHINode *Phi = dyn_cast<PHINode>(&I)) {
+      BasicBlock *IncomingBlock1 = Phi->getIncomingBlock(unsigned(0));
+      BasicBlock *IncomingBlock2 = Phi->getIncomingBlock(unsigned(1));
+      if (IncomingBlock1 == Scalarized) {
+        if (Phi == IndVar) {
+          Phi->removeIncomingValue(unsigned(0));
+          Phi->addIncoming(CurIndVar, Vectorized);
+        }
+        if (Phi == AccVar) {
+          Phi->removeIncomingValue(unsigned(0));
+          Phi->addIncoming(CI, Vectorized);
+        }
+      }
+      if (IncomingBlock2 == Scalarized) {
+        if (Phi == IndVar) {
+          Phi->removeIncomingValue(unsigned(1));
+          Phi->addIncoming(CurIndVar, Vectorized);
+        }
+        if (Phi == AccVar) {
+          Phi->removeIncomingValue(unsigned(1));
+          Phi->addIncoming(CI, Vectorized);
+        }
+      }
+    }
+  }
+
+  // Connect Header -> Vectorized / SubHeader
+  BranchInst *HeaderBranch = dyn_cast<BranchInst>(Header->getTerminator());
+  HeaderBranch->setSuccessor(0, Vectorized);
+  HeaderBranch->setSuccessor(1, SubHeader);
+
+  // Connect Scalarized -> SubHeader
+  BranchInst *ScalarizedBranch =
+      dyn_cast<BranchInst>(Scalarized->getTerminator());
+  ScalarizedBranch->setSuccessor(0, SubHeader);
+
+  // Modify all variables in Scalarized Block
+  // IndVar -> SubIndVar, AccVar -> SubAccVar
+  for (Instruction &I : *Scalarized) {
+    for (Use &U : I.operands()) {
+      if (U.get() == IndVar)
+        U.set(SubIndVar);
+      if (U.get() == AccVar)
+        U.set(SubAccVar);
+    }
+  }
+
+  // Change branch condition of vectorized block to i<n-7
+  Instruction *CmpInst = Cmp;
+  Value *Criterion = Cmp->getOperand(1);
+  Instruction *SubInst = BinaryOperator::CreateSub(
+      Criterion, ConstantInt::get(Criterion->getType(), 7),
+      Criterion->getName() + ".new", CmpInst);
+  Value *NewCriterion = SubInst;
+  CmpInst->setOperand(1, NewCriterion);
+
+  // Satisfy loop structure: set new L->Latch Block as Vectorized
+  // L.setLoopLatch(Vectorized);
+
   errs() << *M;
-  
+
+
   return PreservedAnalyses::none();
 }
 
@@ -457,7 +572,8 @@ extern "C" ::llvm::PassPluginLibraryInfo llvmGetPassPluginInfo() {
                 [](StringRef Name, FunctionPassManager &FPM,
                    ArrayRef<PassBuilder::PipelineElement>) {
                   if (Name == "loop2sum") {
-                    FPM.addPass(createFunctionToLoopPassAdaptor(Loop2SumPass()));
+                    FPM.addPass(
+                        createFunctionToLoopPassAdaptor(Loop2SumPass()));
                     return true;
                   }
                   return false;

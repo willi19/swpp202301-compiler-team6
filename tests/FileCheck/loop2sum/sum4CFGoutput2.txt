@@ -1,0 +1,50 @@
+define dso_local i32 @main() {
+entry:
+  br label %for.cond
+
+for.cond:                                         ; preds = %for.body.vec, %entry
+  %i.0 = phi i64 [ 0, %entry ], [ %inc.vec6, %for.body.vec ]
+  %sum.0 = phi i64 [ 0, %entry ], [ %add.vec, %for.body.vec ]
+  %.new = sub i64 20, 7
+  %cmp = icmp ult i64 %i.0, %.new
+  br i1 %cmp, label %for.body.vec, label %for.cond.sca
+
+for.body:                                         ; preds = %for.cond.sca
+  %mul = mul i64 %i.0.sca, %i.0.sca
+  %add = add i64 %sum.0.sca, %mul
+  %inc = add i64 %i.0.sca, 1
+  br label %for.cond.sca
+
+for.end:                                          ; preds = %for.cond.sca
+  %sum.0.lcssa = phi i64 [ %sum.0.sca, %for.cond.sca ]
+  call void @write(i64 noundef %sum.0.lcssa)
+  ret i32 0
+
+for.body.vec:                                     ; preds = %for.cond
+  %mul.vec0 = mul i64 %i.0, %i.0
+  %inc.vec0 = add i64 %i.0, 1
+  %mul.vec1 = mul i64 %inc.vec0, %inc.vec0
+  %inc.vec1 = add i64 %inc.vec0, 1
+  %mul.vec2 = mul i64 %inc.vec1, %inc.vec1
+  %inc.vec2 = add i64 %inc.vec1, 1
+  %mul.vec3 = mul i64 %inc.vec2, %inc.vec2
+  %inc.vec3 = add i64 %inc.vec2, 1
+  %mul.vec4 = mul i64 %inc.vec3, %inc.vec3
+  %inc.vec4 = add i64 %inc.vec3, 1
+  %mul.vec5 = mul i64 %inc.vec4, %inc.vec4
+  %inc.vec5 = add i64 %inc.vec4, 1
+  %mul.vec6 = mul i64 %inc.vec5, %inc.vec5
+  %inc.vec6 = add i64 %inc.vec5, 1
+  %add.vec = call i64 @int_sum_i64(i64 %sum.0, i64 %mul.vec0, i64 %mul.vec1, i64 %mul.vec2, i64 %mul.vec3, i64 %mul.vec4, i64 %mul.vec5, i64 %mul.vec6)
+  br label %for.cond
+
+for.cond.sca:                                     ; preds = %for.body, %for.cond
+  %i.0.sca = phi i64 [ %i.0, %for.cond ]
+  %sum.0.sca = phi i64 [ 0, %entry ], [ %add, %for.body ], [ %sum.0, %for.cond ]
+  %cmp.sca = icmp ult i64 %i.0.sca, 20
+  br i1 %cmp.sca, label %for.body, label %for.end
+}
+
+declare void @write(i64 noundef)
+
+declare i64 @int_sum_i64(i64, i64, i64, i64, i64, i64, i64, i64)
