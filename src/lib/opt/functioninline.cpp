@@ -66,11 +66,13 @@ PreservedAnalyses FunctionInlinePass::run(Module &M,
   for (auto &F : M) {
     set<Function *> CurrentPath;
 
+    errs() << F.getName() << '\n';
+
     if (F.isDeclaration())
-      continue;
+        continue;
     if (!VisitedFunctions.count(&F) &&
         HasCycleInFunction(&F, VisitedFunctions, CurrentPath))
-      continue;
+        continue;
 
     for (BasicBlock &BB : F) {
       for (Instruction &I : BB) {
@@ -79,21 +81,24 @@ PreservedAnalyses FunctionInlinePass::run(Module &M,
           continue;
 
         Function *Callee = Caller->getCalledFunction();
+
+        // errs() << Callee->getName() << ' ' << Callee->getInstructionCount() << '\n';
+
         if (!Callee || Callee->isDeclaration())
           continue;
         if (!(isInlineViable(*Callee).isSuccess()))
           continue;
         if (Callee->hasFnAttribute(Attribute::NoInline))
           continue;
-
-        if (F.getInstructionCount() < 100)
-          DoInline.push_back(Caller);
+        if (Callee->getInstructionCount() > 50)
+          continue;
+        
+        DoInline.push_back(Caller);
       }
     }
   }
 
-  for (auto &E : DoInline) {
-    CallBase *Caller = E;
+  for (auto &Caller : DoInline) {
     Changed |=
         InlineFunction(*Caller, IFI, nullptr, false, nullptr).isSuccess();
   }
