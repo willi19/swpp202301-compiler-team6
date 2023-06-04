@@ -6,6 +6,7 @@
 #include "opt/branchpredict.h"
 #include "opt/heap2stack.h"
 #include "opt/incrdecr.h"
+#include "opt/intrinsic_eliminate.h"
 #include "opt/load2aload.h"
 #include "opt/loop2sum.h"
 #include "opt/functioninline.h"
@@ -15,6 +16,8 @@
 
 #include "llvm/Analysis/CGSCCPassManager.h"
 #include "llvm/IR/Verifier.h"
+#include "llvm/Transforms/InstCombine/InstCombine.h"
+#include "llvm/Transforms/Scalar/ADCE.h"
 #include "llvm/Transforms/Scalar/GVN.h"
 #include "llvm/Transforms/Scalar/LoopPassManager.h"
 #include "llvm/Transforms/Scalar/SimplifyCFG.h"
@@ -42,15 +45,22 @@ optimizeIR(std::unique_ptr<llvm::Module> &&__M,
     // Add loop-level opt passes below
     FPM.addPass(llvm::SimplifyCFGPass());
 //    FPM.addPass(createFunctionToLoopPassAdaptor(loop2sum::Loop2SumPass()));
-    FPM.addPass(llvm::SimplifyCFGPass());
     FPM.addPass(llvm::createFunctionToLoopPassAdaptor(std::move(LPM)));
     // Add function-level opt passes below
+    FPM.addPass(llvm::SimplifyCFGPass());
     FPM.addPass(llvm::PromotePass());
+    FPM.addPass(llvm::InstCombinePass());
+    FPM.addPass(llvm::GVNPass());
+    FPM.addPass(llvm::SimplifyCFGPass());
+    FPM.addPass(llvm::InstCombinePass());
     FPM.addPass(llvm::TailCallElimPass());
     FPM.addPass(llvm::GVNPass());
+
+    FPM.addPass(intrinsic_elim::IntrinsicEliminatePass());
+    FPM.addPass(arithmeticpass::ArithmeticPass());
+    // FPM.addPass(llvm::createFunctionToLoopPassAdaptor(loop2sum::Loop2SumPass()));
     FPM.addPass(branchpredict::BranchPredictPass());
     FPM.addPass(load2aload::Load2AloadPass());
-    FPM.addPass(arithmeticpass::ArithmeticPass());
 
     CGPM.addPass(llvm::createCGSCCToFunctionPassAdaptor(std::move(FPM)));
     // Add CGSCC-level opt passes below

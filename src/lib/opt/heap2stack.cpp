@@ -191,7 +191,7 @@ PreservedAnalyses Heap2StackPass::run(Module &M, ModuleAnalysisManager &MAM) {
     CI->eraseFromParent();
   }
 
-  return PreservedAnalyses::all();
+  return PreservedAnalyses::none();
 }
 
 extern "C" ::llvm::PassPluginLibraryInfo llvmGetPassPluginInfo() {
