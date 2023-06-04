@@ -5,6 +5,7 @@
 
 #include "opt/branchpredict.h"
 #include "opt/heap2stack.h"
+#include "opt/incrdecr.h"
 #include "opt/load2aload.h"
 #include "opt/loop2sum.h"
 #include "opt/oracle.h"
@@ -58,6 +59,7 @@ optimizeIR(std::unique_ptr<llvm::Module> &&__M,
     MPM.addPass(heap2stack::Heap2StackPass());
     MPM.addPass(llvm::VerifierPass());
     MPM.addPass(oracle::OraclePass());
+    FPM.addPass(incrdecr::IncrDecrPass());
 
     MPM.run(*__M, __MAM);
 
