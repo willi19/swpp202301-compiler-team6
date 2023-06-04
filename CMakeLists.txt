@@ -93,8 +93,10 @@ add_opt_pass(branchpredict branchpredict.cpp)
 add_opt_pass(load2aload load2aload.cpp)
 add_opt_pass(heap2stack heap2stack.cpp)
 add_opt_pass(Loop2SumPass loop2sum.cpp)
+add_opt_pass(FunctionInlinePass functioninline.cpp)
 add_opt_pass(IncrDecrPass incrdecr.cpp)
 add_opt_pass(oracle oracle.cpp)
+
 # /================== DO NOT EDIT BELOW ==================/
 add_library(SCOpt ${SRC_DIR}/lib/opt.cpp)
 target_include_directories(SCOpt PRIVATE ${LLVM_INCLUDE_DIRS})
