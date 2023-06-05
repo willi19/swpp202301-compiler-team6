@@ -1,42 +1,46 @@
 #include "heap2stack.h"
 
 #include "llvm/IR/Constants.h"
+#include "llvm/IR/Dominators.h"
 #include "llvm/IR/Instructions.h"
+#include "llvm/IR/Type.h"
 #include "llvm/Passes/PassBuilder.h"
 #include "llvm/Passes/PassPlugin.h"
+#include "llvm/Transforms/Utils/PromoteMemToReg.h"
 
 using namespace llvm;
 using namespace std;
 
 namespace {
-bool HasCycleInFunction(
-    Function *function, set<Function *> &VisitedFunctions,
+const uint64_t StackAllocSize = 102400 * 0.8;
+const uint64_t StackMax = 102400;
+
+bool hasCycleInFunction(
+    Function *F, set<Function *> &VisitedFunctions,
     set<Function *> &CurrentPath) { // check wheter there are cycle between
                                     // functions like A -- call --> B
-  VisitedFunctions.insert(function);
-  CurrentPath.insert(function);
+  VisitedFunctions.insert(F);
+  CurrentPath.insert(F);
 
-  for (auto &BB : *function) {
+  for (auto &BB : *F) {
     for (auto &Inst : BB) {
       if (CallInst *CI = dyn_cast<CallInst>(&Inst)) {
-        Function *CalledFunction = CI->getCalledFunction();
-
-        if (CalledFunction == nullptr) {
-          // Indirect function call, skip it
+        Function *CalledF = CI->getCalledFunction();
+        // Indirect function call, skip it
+        if (CalledF == nullptr)
           continue;
-        }
 
-        if (!VisitedFunctions.count(CalledFunction)) {
-          if (HasCycleInFunction(CalledFunction, VisitedFunctions, CurrentPath))
+        if (!VisitedFunctions.count(CalledF)) {
+          if (hasCycleInFunction(CalledF, VisitedFunctions, CurrentPath))
             return true;
-        } else if (CurrentPath.count(CalledFunction)) {
+        } else if (CurrentPath.count(CalledF)) {
           return true; // Found a cycle
         }
       }
     }
   }
 
-  CurrentPath.erase(function);
+  CurrentPath.erase(F);
   return false;
 }
 } // namespace
@@ -47,146 +51,150 @@ PreservedAnalyses Heap2StackPass::run(Module &M, ModuleAnalysisManager &MAM) {
     set<Function *> VisitedFunctions;
     set<Function *> CurrentPath;
 
-    if (HasCycleInFunction(&F, VisitedFunctions, CurrentPath)) {
+    if (hasCycleInFunction(&F, VisitedFunctions, CurrentPath))
       return PreservedAnalyses::all();
-    }
   }
 
-  LLVMContext &Context = M.getContext();
+  auto &C = M.getContext();
+  auto &FAM = MAM.getResult<FunctionAnalysisManagerModuleProxy>(M).getManager();
 
-  Function *MainFn, *MallocFn, *FreeFn;
-  FunctionType *MainTy, *MallocTy, *FreeTy;
+  Function *MainFn = M.getFunction("main");
+  Function *MallocFn = M.getFunction("malloc");
+  Function *FreeFn = M.getFunction("free");
+  Function *WriteFn = M.getFunction("write");
 
-  MallocFn = MainFn = FreeFn = NULL;
-  // Fetch the corresponding functions from the module
-  for (auto &F : M) {
-    if (F.getName() == "malloc")
-      MallocFn = &F, MallocTy = dyn_cast<FunctionType>(F.getValueType());
-    else if (F.getName() == "free")
-      FreeFn = &F, FreeTy = dyn_cast<FunctionType>(F.getValueType());
-    else if (F.getName() == "main")
-      MainFn = &F, MainTy = dyn_cast<FunctionType>(F.getValueType());
-  }
+  if (!MallocFn)
+    return PreservedAnalyses::all();
 
-  Type *Int64Ty = Type::getInt64Ty(Context);
-  llvm::FunctionCallee DecrSpFn =
-      M.getOrInsertFunction("$decr_sp", Int64Ty, Int64Ty);
+  Type *Int64Ty = Type::getInt64Ty(C);
+  Type *Int8Ty = Type::getInt8Ty(C);
+  Type *Int8PtrTy = Type::getInt8PtrTy(C);
 
-  vector<CallInst *> MallocInsts;
-  vector<CallInst *> FreeInsts;
-  // Find malloc in main and free
+  SmallVector<CallInst *, 64> MallocInsts;
+  SmallVector<CallInst *, 64> FreeInsts;
+
   for (auto &F : M) {
     for (auto &BB : F) {
       for (auto &I : BB) {
         if (CallInst *CI = dyn_cast<CallInst>(&I)) {
-          if (CI->getCalledFunction()->getName() == "malloc" && &F == MainFn)
+          if (&F == MainFn && CI->getCalledFunction() == MallocFn)
             MallocInsts.push_back(CI);
-          if (CI->getCalledFunction()->getName() == "free")
+          else if (FreeFn && CI->getCalledFunction() == FreeFn)
             FreeInsts.push_back(CI);
         }
       }
     }
   }
+
   // No need to optimize if there is no candidate malloc
   if (MallocInsts.empty()) {
     return PreservedAnalyses::all();
   }
-  /* Convert all candidate malloc(ReqSize) to:
-   * if (SP - ReqSize >= StackBoundary) (Remaining space after malloc >
-   * StackBoundary) decr_sp(ReqSize); else malloc(ReqSize); */
+
+  IRBuilder<> Builder(C);
+
+  Builder.SetInsertPoint(&*MainFn->begin()->getFirstNonPHI());
+  // Note: the provided backend doesn't handle array-sized allocas
+  auto *BlockPtr = Builder.CreatePointerCast(
+      Builder.CreateAlloca(ArrayType::get(Int8Ty, StackAllocSize)), Int8PtrTy,
+      "block.ptr");
+  auto *NextAllocPtr =
+      Builder.CreateAlloca(Int8PtrTy, nullptr, "nextalloc.ptr");
+  auto *LeftSizePtr = Builder.CreateAlloca(Int64Ty, nullptr, "leftsize.ptr");
+  Builder.CreateStore(ConstantInt::get(Int64Ty, StackAllocSize), LeftSizePtr);
+  Builder.CreateStore(BlockPtr, NextAllocPtr);
+
   for (auto &CI : MallocInsts) {
-    BasicBlock *BB = CI->getParent();
-    BasicBlock *SplitBB = BB->splitBasicBlock(CI, "div." + BB->getName());
-    // Split base on CI, orig block doesn't contain
-    // CU while next block start with CI.
-    BasicBlock *StackBB =
-        BasicBlock::Create(Context, "stack." + BB->getName(), MainFn);
-    BasicBlock *HeapBB =
-        BasicBlock::Create(Context, "heap." + BB->getName(), MainFn);
-    /*BB
-      |      \
-    stackBB  heapBB
-       |     /
-    divBB(start with CI(Malloc))
-    */
+    auto *BB = CI->getParent();
+    auto *SplitBB = BB->splitBasicBlock(CI, BB->getName() + ".split");
+    // Split on CI, SplitBB now starts with CI.
+    auto *StackBB = BasicBlock::Create(C, BB->getName() + ".stack", MainFn);
+    auto *HeapBB = BasicBlock::Create(C, BB->getName() + ".heap", MainFn);
 
-    Value *AllocSize = CI->getOperand(0);
+    // remove unconditional br BB->SplitBB
+    BB->getTerminator()->eraseFromParent();
+    Builder.SetInsertPoint(BB);
 
-    auto *LoadCurSp = CallInst::Create(
-        DecrSpFn, ArrayRef<Value *>{ConstantInt::get(Int64Ty, 0, true)},
-        "cur.sp"); // load current stackpointer
-    auto *LeftSpace =
-        BinaryOperator::CreateSub(LoadCurSp, AllocSize, "space.left");
-    auto *CmpSP = new ICmpInst(ICmpInst::ICMP_SGE, LeftSpace,
-                               ConstantInt::get(Int64Ty, StackBoundary),
-                               "alloca_possible"); // SpaceLeft > MinumumSpace
-    // True: stackBB, False: heapBB
-    auto *BrSP = BranchInst::Create(StackBB, HeapBB, CmpSP);
-    BB->getInstList().pop_back(); // Remove BranchInst BB->SplitBB
-    BB->getInstList().push_back(LoadCurSp);
-    BB->getInstList().push_back(LeftSpace);
-    BB->getInstList().push_back(CmpSP);
-    BB->getInstList().push_back(BrSP);
+    // Transforms from:
+    //
+    //   malloc(AllocSize)
+    //
+    // to:
+    //
+    //   if (LeftSize >= AllocSize) {
+    //     LeftSize -= AllocSize;
+    //     void *Alloc = NextAlloc;
+    //     NextAlloc += AllocSize;
+    //     Alloc
+    //   } else {
+    //     malloc(AllocSize)
+    //   }
+
+    auto *AllocSize = CI->getOperand(0);
+    auto *LeftSize = Builder.CreateLoad(Int64Ty, LeftSizePtr, "leftsize");
+    auto *Cond =
+        Builder.CreateCmp(ICmpInst::ICMP_SGE, LeftSize, AllocSize, "cond");
+    Builder.CreateCondBr(Cond, StackBB, HeapBB);
 
     // Stack Basic Block
-    auto *DecrSp = CallInst::Create(DecrSpFn, {AllocSize}, "by.alloca");
-    llvm::CastInst *SpCast =
-        llvm::CastInst::CreateBitOrPointerCast(DecrSp, CI->getType(), "");
-    auto *BackFromStack = BranchInst::Create(SplitBB);
-    StackBB->getInstList().push_back(DecrSp);        // move sp by decr_sp
-    StackBB->getInstList().push_back(SpCast);        // change to type of malloc
-    StackBB->getInstList().push_back(BackFromStack); // Branch back to divBB
+    Builder.SetInsertPoint(StackBB);
+    auto *NewLeftSize = Builder.CreateBinOp(Instruction::Sub, LeftSize,
+                                            AllocSize, "leftsize.sub");
+    Builder.CreateStore(NewLeftSize, LeftSizePtr);
+    auto *NextAlloc = Builder.CreateLoad(Int8PtrTy, NextAllocPtr, "nextalloc");
+    auto *NewNextAlloc = Builder.CreateIntToPtr(
+        Builder.CreateBinOp(Instruction::Add,
+                            Builder.CreatePtrToInt(NextAlloc, Int64Ty),
+                            AllocSize),
+        Int8PtrTy, "nextptr.add");
+    Builder.CreateStore(NewNextAlloc, NextAllocPtr);
+    Builder.CreateBr(SplitBB);
 
-    // Heap Basic Block
-    auto *Malloc =
-        CallInst::Create(MallocTy, MallocFn, {AllocSize}, "by.malloc");
-    auto *BackFromHeap = BranchInst::Create(SplitBB);
-    HeapBB->getInstList().push_back(Malloc); // malloc(size)
-    HeapBB->getInstList().push_back(BackFromHeap);
+    Builder.SetInsertPoint(HeapBB);
+    auto *MallocPtr = Builder.CreateCall(MallocFn->getFunctionType(), MallocFn,
+                                         {AllocSize}, "malloc");
+    Builder.CreateBr(SplitBB);
 
-    // Splited Basic Block; Absolb allocation using a PHI node
-    auto *Phi = PHINode::Create(CI->getType(), 2, "alloc." + CI->getName());
-    Phi->addIncoming(SpCast, StackBB);
-    Phi->addIncoming(Malloc, HeapBB);
-    SplitBB->getInstList().push_front(Phi);
+    Builder.SetInsertPoint(&*SplitBB->begin());
+    auto *PHI = Builder.CreatePHI(Int8PtrTy, 2);
+    PHI->addIncoming(NextAlloc, StackBB);
+    PHI->addIncoming(MallocPtr, HeapBB);
 
-    CI->replaceAllUsesWith(Phi);
+    CI->replaceAllUsesWith(PHI);
     CI->eraseFromParent();
   }
 
-  /* Convert all candidate free(ptr) to: (can be either STACK or HEAP alloc)
-   * if ((int) ptr >= MaxStackSize) free(ptr)
-   * else ; // do nothing */
+  auto &MainDT = FAM.getResult<DominatorTreeAnalysis>(*MainFn);
+  PromoteMemToReg({NextAllocPtr, LeftSizePtr}, MainDT);
+
   for (auto &CI : FreeInsts) {
-    /*BB
-      |      \
-      |   FreeBB
-      |     /
-    divBB(start with CI(Free))
-    */
-    BasicBlock *BB = CI->getParent();
-    BasicBlock *SplitBB = BB->splitBasicBlock(CI, "div.free." + BB->getName());
-    Function *CurFn = BB->getParent(); // Function to add splited BB
-    BasicBlock *FreeBB =
-        BasicBlock::Create(Context, "free." + BB->getName(), CurFn);
-    Value *AllocPtr = CI->getOperand(0);
+    auto *BB = CI->getParent();
+    auto *SplitBB = BB->splitBasicBlock(CI, BB->getName() + ".split");
+    auto *FreeBB =
+        BasicBlock::Create(C, BB->getName() + ".free", BB->getParent());
 
-    // Basic Block Conditional Branch Update
-    auto *AllocPos = new PtrToIntInst(AllocPtr, Int64Ty, "sp.as.int");
-    auto *CmpSP =
-        new ICmpInst(ICmpInst::ICMP_SGE, AllocPos,
-                     ConstantInt::get(Int64Ty, MaxStackSize), "cmp.sp");
-    auto *BrSP = BranchInst::Create(FreeBB, SplitBB, CmpSP);
-    BB->getInstList().pop_back();          // Remove BranchInst BB->SplitBB
-    BB->getInstList().push_back(AllocPos); // (int) ptr
-    BB->getInstList().push_back(CmpSP);    // (int) ptr >= STACK_BOUNDARY
-    BB->getInstList().push_back(BrSP);     // True: FreeBB, False: SplitBB
+    // remove unconditional br BB->SplitBB
+    BB->getTerminator()->eraseFromParent();
+    Builder.SetInsertPoint(BB);
 
-    // FreeBB for actual free in HEAP area
-    auto *Free = CallInst::Create(FreeTy, FreeFn, {AllocPtr});
-    auto *Back = BranchInst::Create(SplitBB);
-    FreeBB->getInstList().push_back(Free);
-    FreeBB->getInstList().push_back(Back);
+    // Transforms from:
+    //
+    //   free(AllocPtr)
+    //
+    // to:
+    //
+    //   if (AllocPtr >= StackMax)
+    //     free(AllocPtr);
+
+    auto *AllocPtr = CI->getOperand(0);
+    auto *Cond = Builder.CreateCmp(ICmpInst::ICMP_SGE,
+                                   Builder.CreatePtrToInt(AllocPtr, Int64Ty),
+                                   ConstantInt::get(Int64Ty, StackMax), "cond");
+    Builder.CreateCondBr(Cond, FreeBB, SplitBB);
+
+    Builder.SetInsertPoint(FreeBB);
+    Builder.CreateCall(FreeFn->getFunctionType(), FreeFn, {AllocPtr});
+    Builder.CreateBr(SplitBB);
 
     CI->eraseFromParent();
   }
