@@ -72,6 +72,8 @@ optimizeIR(std::unique_ptr<llvm::Module> &&__M,
     MPM.addPass(llvm::VerifierPass());
     MPM.addPass(oracle::OraclePass());
     FPM.addPass(incrdecr::IncrDecrPass());
+    MPM.addPass(llvm::createModuleToFunctionPassAdaptor(
+        intrinsic_elim::IntrinsicEliminatePass()));
 
     MPM.run(*__M, __MAM);
 

@@ -13,10 +13,9 @@ IntrinsicEliminatePass::run(llvm::Function &F,
                             llvm::FunctionAnalysisManager &FAM) {
   bool Changed = false;
   for (auto &BB : F) {
-    for (auto &I : BB) {
-      if (auto *II = dyn_cast<IntrinsicInst>(&I)) {
+    for (auto I = BB.begin(), E = BB.end(); I != E; ++I) {
+      if (auto *II = dyn_cast<IntrinsicInst>(&*I)) {
         Changed = true;
-        errs() << "[dbg:intrinsic_elim] Intrinsic instruction " << *II << "\n";
         IRBuilder<> Builder(F.getContext());
         switch (II->getIntrinsicID()) {
         case Intrinsic::smin: {
@@ -53,6 +52,12 @@ IntrinsicEliminatePass::run(llvm::Function &F,
           Value *Cmp = Builder.CreateICmpUGT(Arg1, Arg2);
           Value *Sel = Builder.CreateSelect(Cmp, Arg1, Arg2);
           II->replaceAllUsesWith(Sel);
+          break;
+        }
+        case Intrinsic::lifetime_start:
+        case Intrinsic::lifetime_end: {
+          I = II->eraseFromParent();
+          --I;
           break;
         }
         default:
