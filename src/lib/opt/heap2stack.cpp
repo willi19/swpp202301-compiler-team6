@@ -15,10 +15,10 @@ namespace {
 const uint64_t StackAllocSize = 102400 * 0.8;
 const uint64_t StackMax = 102400;
 
-bool hasCycleInFunction(
-    Function *F, set<Function *> &VisitedFunctions,
-    set<Function *> &CurrentPath) { // check wheter there are cycle between
-                                    // functions like A -- call --> B
+bool hasCycleInFunction(Function *F, set<Function *> &VisitedFunctions,
+                        set<Function *> &CurrentPath) {
+  // check wheter there are cycle between
+  // functions like A -- call --> B
   VisitedFunctions.insert(F);
   CurrentPath.insert(F);
 
@@ -151,8 +151,7 @@ PreservedAnalyses Heap2StackPass::run(Module &M, ModuleAnalysisManager &MAM) {
     Builder.CreateBr(SplitBB);
 
     Builder.SetInsertPoint(HeapBB);
-    auto *MallocPtr = Builder.CreateCall(MallocFn->getFunctionType(), MallocFn,
-                                         {AllocSize}, "malloc");
+    auto *MallocPtr = Builder.CreateCall(MallocFn, {AllocSize}, "malloc");
     Builder.CreateBr(SplitBB);
 
     Builder.SetInsertPoint(&*SplitBB->begin());
@@ -193,7 +192,7 @@ PreservedAnalyses Heap2StackPass::run(Module &M, ModuleAnalysisManager &MAM) {
     Builder.CreateCondBr(Cond, FreeBB, SplitBB);
 
     Builder.SetInsertPoint(FreeBB);
-    Builder.CreateCall(FreeFn->getFunctionType(), FreeFn, {AllocPtr});
+    Builder.CreateCall(FreeFn, {AllocPtr});
     Builder.CreateBr(SplitBB);
 
     CI->eraseFromParent();

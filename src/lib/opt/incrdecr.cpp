@@ -226,6 +226,10 @@ PreservedAnalyses IncrDecrPass::run(Function &F, FunctionAnalysisManager &FAM) {
         NewOp = NewInst;
       }
       I->replaceAllUsesWith(NewOp);
+      for (int i = 0; i < UsedVal.size(); ++i) {
+        if (UsedVal[i] == I)
+          UsedVal[i] = NewOp;
+      }
       I->eraseFromParent();
     }
   }
