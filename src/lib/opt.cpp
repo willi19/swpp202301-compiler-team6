@@ -11,6 +11,7 @@
 #include "opt/loop2sum.h"
 #include "opt/functioninline.h"
 #include "opt/oracle.h"
+#include "opt/removefree.h"
 
 #include "print_ir.h"
 
@@ -74,6 +75,7 @@ optimizeIR(std::unique_ptr<llvm::Module> &&__M,
     FPM.addPass(incrdecr::IncrDecrPass());
     MPM.addPass(llvm::createModuleToFunctionPassAdaptor(
         intrinsic_elim::IntrinsicEliminatePass()));
+    MPM.addPass(removefree::RemoveFreePass());
 
     MPM.run(*__M, __MAM);
 
