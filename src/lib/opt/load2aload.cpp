@@ -130,6 +130,9 @@ bool canStoreMemory(Instruction *I) {
 namespace sc::opt::load2aload {
 PreservedAnalyses Load2AloadPass::run(Function &F,
                                       FunctionAnalysisManager &FAM) {
+  if (F.getName() == "oracle")
+    return PreservedAnalyses::all();
+
   bool Changed = false;
   for (auto &BB : F) {
     MapVector<LoadInst *, Instruction *> ReplaceMap;
