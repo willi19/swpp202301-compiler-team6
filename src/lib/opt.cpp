@@ -1,7 +1,6 @@
 #include "opt.h"
 
 #include "../static_error.h"
-#include "opt/add2sum.h"
 #include "opt/arithmeticpass.h"
 #include "opt/branchpredict.h"
 #include "opt/functioninline.h"
@@ -9,7 +8,6 @@
 #include "opt/incrdecr.h"
 #include "opt/intrinsic_eliminate.h"
 #include "opt/load2aload.h"
-#include "opt/loop2sum.h"
 #include "opt/oracle.h"
 #include "opt/phierase.h"
 #include "opt/removefree.h"
@@ -90,7 +88,6 @@ optimizeIR(std::unique_ptr<llvm::Module> &&__M,
     // Produces intrinsic functions, must be after oracle
     FPM3.addPass(load2aload::Load2AloadPass());
     FPM3.addPass(incrdecr::IncrDecrPass());
-    FPM3.addPass(add2sum::Add2SumPass());
     // Just to be safe
     FPM3.addPass(intrinsic_elim::IntrinsicEliminatePass());
     FPM3.addPass(phierase::PhierasePass());
