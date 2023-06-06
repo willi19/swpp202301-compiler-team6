@@ -62,26 +62,28 @@ optimizeIR(std::unique_ptr<llvm::Module> &&__M,
     //    FPM.addPass(intrinsic_elim::IntrinsicEliminatePass());
     //    FPM.addPass(arithmeticpass::ArithmeticPass());
     // FPM.addPass(llvm::createFunctionToLoopPassAdaptor(loop2sum::Loop2SumPass()));
-    //    FPM.addPass(branchpredict::BranchPredictPass());
-    //    FPM.addPass(phierase::PhierasePass());
+    FPM.addPass(branchpredict::BranchPredictPass());
+//    FPM.addPass(phierase::PhierasePass());
 
     CGPM.addPass(llvm::createCGSCCToFunctionPassAdaptor(std::move(FPM)));
     // Add CGSCC-level opt passes below
 
     MPM.addPass(llvm::createModuleToPostOrderCGSCCPassAdaptor(std::move(CGPM)));
     // Add module-level opt passes below
-    //    MPM.addPass(functioninline::FunctionInlinePass());
-    //    MPM.addPass(heap2stack::Heap2StackPass());
-    //    MPM.addPass(oracle::OraclePass());
-    //    MPM.addPass(
-    //        llvm::createModuleToFunctionPassAdaptor(load2aload::Load2AloadPass()));
-    //    MPM.addPass(
-    //        llvm::createModuleToFunctionPassAdaptor(incrdecr::IncrDecrPass()));
+
+//    MPM.addPass(functioninline::FunctionInlinePass());
+//    MPM.addPass(llvm::GlobalDCEPass());
+    MPM.addPass(heap2stack::Heap2StackPass());
+//    MPM.addPass(oracle::OraclePass());
+    MPM.addPass(
+        llvm::createModuleToFunctionPassAdaptor(load2aload::Load2AloadPass()));
+    MPM.addPass(
+        llvm::createModuleToFunctionPassAdaptor(incrdecr::IncrDecrPass()));
     MPM.addPass(
         llvm::createModuleToFunctionPassAdaptor(add2sum::Add2SumPass()));
-    //    MPM.addPass(llvm::createModuleToFunctionPassAdaptor(
-    //        intrinsic_elim::IntrinsicEliminatePass()));
-    //    MPM.addPass(removefree::RemoveFreePass());
+    MPM.addPass(llvm::createModuleToFunctionPassAdaptor(
+        intrinsic_elim::IntrinsicEliminatePass()));
+    MPM.addPass(removefree::RemoveFreePass());
 
     MPM.addPass(llvm::VerifierPass());
 

@@ -41,7 +41,7 @@ bool isEligibleForOracle(Loop *L) {
     for (auto &I: *BB) {
       InstCount++;
       if (isa<CallInst>(&I))
-        HasCall = false;
+        HasCall = true;
       else if (isa<LoadInst>(&I) || isa<StoreInst>(&I))
         HasMemAccess = true;
     }
