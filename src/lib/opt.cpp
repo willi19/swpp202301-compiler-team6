@@ -12,6 +12,7 @@
 #include "opt/functioninline.h"
 #include "opt/oracle.h"
 #include "opt/removefree.h"
+#include "opt/phierase.h"
 
 #include "print_ir.h"
 
@@ -61,6 +62,7 @@ optimizeIR(std::unique_ptr<llvm::Module> &&__M,
     FPM.addPass(arithmeticpass::ArithmeticPass());
     // FPM.addPass(llvm::createFunctionToLoopPassAdaptor(loop2sum::Loop2SumPass()));
     FPM.addPass(branchpredict::BranchPredictPass());
+    FPM.addPass(phierase::PhierasePass());
     FPM.addPass(load2aload::Load2AloadPass());
 
     CGPM.addPass(llvm::createCGSCCToFunctionPassAdaptor(std::move(FPM)));

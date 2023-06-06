@@ -99,6 +99,7 @@ add_opt_pass(FunctionInlinePass functioninline.cpp)
 add_opt_pass(IncrDecrPass incrdecr.cpp)
 add_opt_pass(oracle oracle.cpp)
 add_opt_pass(removefree removefree.cpp)
+add_opt_pass(phierase phierase.cpp)
 
 # /================== DO NOT EDIT BELOW ==================/
 add_library(SCOpt ${SRC_DIR}/lib/opt.cpp)
