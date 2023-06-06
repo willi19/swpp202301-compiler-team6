@@ -9,7 +9,7 @@ set(SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
 
 # Specify LLVM directory to use
-set(LLVM_ROOT ~/swpp202301/llvm-swpp)
+# set(LLVM_ROOT ~/swpp202301/llvm-swpp)
 find_package(LLVM REQUIRED CONFIG)
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVM in: ${LLVM_BINARY_DIR}")
@@ -104,8 +104,7 @@ add_opt_pass(phierase phierase.cpp)
 # /================== DO NOT EDIT BELOW ==================/
 add_library(SCOpt ${SRC_DIR}/lib/opt.cpp)
 target_include_directories(SCOpt PRIVATE ${LLVM_INCLUDE_DIRS})
-# llvm_map_components_to_libnames(opt_llvm_libs analysis passes transformutils scalaropts instcombine)
-llvm_map_components_to_libnames(opt_llvm_libs analysis passes transformutils scalaropts vectorize scalaropts coverage instcombine)
+llvm_map_components_to_libnames(opt_llvm_libs analysis passes transformutils scalaropts instcombine ipo)
 target_link_libraries(SCOpt PRIVATE SCPrintIR OptPasses ${opt_llvm_libs})
 
 set(PROJECT_LIB "SComp")

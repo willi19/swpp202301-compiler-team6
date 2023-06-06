@@ -19,30 +19,32 @@ using namespace llvm;
 using namespace std;
 
 namespace {
-bool HasCycleInFunction(Function *function, set<Function *> &VisitedFunctions,
+bool hasCycleInFunction(Function *F, set<Function *> &VisitedFunctions,
                         set<Function *> &CurrentPath) {
-  VisitedFunctions.insert(function);
-  CurrentPath.insert(function);
+  // check wheter there are cycle between
+  // functions like A -- call --> B
+  VisitedFunctions.insert(F);
+  CurrentPath.insert(F);
 
-  for (auto &BB : *function) {
+  for (auto &BB : *F) {
     for (auto &Inst : BB) {
       if (CallInst *CI = dyn_cast<CallInst>(&Inst)) {
-        Function *CalledFunction = CI->getCalledFunction();
-
-        if (CalledFunction == nullptr) // indirect function call
+        Function *CalledF = CI->getCalledFunction();
+        // Indirect function call, skip it
+        if (CalledF == nullptr)
           continue;
 
-        if (!VisitedFunctions.count(CalledFunction)) {
-          if (HasCycleInFunction(CalledFunction, VisitedFunctions, CurrentPath))
+        if (!VisitedFunctions.count(CalledF)) {
+          if (hasCycleInFunction(CalledF, VisitedFunctions, CurrentPath))
             return true;
-        } else if (CurrentPath.count(CalledFunction)) {
-          return true;
+        } else if (CurrentPath.count(CalledF)) {
+          return true; // Found a cycle
         }
       }
     }
   }
 
-  CurrentPath.erase(function);
+  CurrentPath.erase(F);
   return false;
 }
 } // namespace
@@ -51,28 +53,25 @@ namespace sc::opt::functioninline {
 PreservedAnalyses FunctionInlinePass::run(Module &M,
                                           ModuleAnalysisManager &MAM) {
 
-  // Check if changed to return correct preserved analyses.
   bool Changed = false;
 
-  // InlineFunctionInfo.
-  FunctionAnalysisManager &FAM =
-      MAM.getResult<FunctionAnalysisManagerModuleProxy>(M).getManager();
-  InlineFunctionInfo IFI(nullptr, [&](Function &F) -> AssumptionCache & {
+  auto &FAM = MAM.getResult<FunctionAnalysisManagerModuleProxy>(M).getManager();
+  auto GetAssumptionCache = [&](Function &F) -> AssumptionCache & {
     return FAM.getResult<AssumptionAnalysis>(F);
-  });
+  };
+  InlineFunctionInfo IFI(nullptr, GetAssumptionCache);
 
   set<Function *> VisitedFunctions;
-  vector<CallBase *> DoInline;
+  vector<CallBase *> InlinableCallers;
   for (auto &F : M) {
     set<Function *> CurrentPath;
 
-    errs() << F.getName() << '\n';
-
     if (F.isDeclaration())
-        continue;
+      continue;
+
     if (!VisitedFunctions.count(&F) &&
-        HasCycleInFunction(&F, VisitedFunctions, CurrentPath))
-        continue;
+        hasCycleInFunction(&F, VisitedFunctions, CurrentPath))
+      continue;
 
     for (BasicBlock &BB : F) {
       for (Instruction &I : BB) {
@@ -81,9 +80,6 @@ PreservedAnalyses FunctionInlinePass::run(Module &M,
           continue;
 
         Function *Callee = Caller->getCalledFunction();
-
-        // errs() << Callee->getName() << ' ' << Callee->getInstructionCount() << '\n';
-
         if (!Callee || Callee->isDeclaration())
           continue;
         if (!(isInlineViable(*Callee).isSuccess()))
@@ -92,15 +88,22 @@ PreservedAnalyses FunctionInlinePass::run(Module &M,
           continue;
         if (Callee->getInstructionCount() > 50)
           continue;
-        
-        DoInline.push_back(Caller);
+
+        InlinableCallers.push_back(Caller);
       }
     }
   }
 
-  for (auto &Caller : DoInline) {
+  for (auto *Caller : InlinableCallers) {
     Changed |=
         InlineFunction(*Caller, IFI, nullptr, false, nullptr).isSuccess();
+  }
+
+  // Allows GlobalDCE to remove dead functions that are inlined.
+  for (auto &F : M) {
+    if (!F.isDeclaration() && F.getName() != "main") {
+      F.setLinkage(GlobalValue::LinkageTypes::PrivateLinkage);
+    }
   }
 
   return Changed ? PreservedAnalyses::none() : PreservedAnalyses::all();

@@ -70,6 +70,7 @@ optimizeIR(std::unique_ptr<llvm::Module> &&__M,
     MPM.addPass(llvm::createModuleToPostOrderCGSCCPassAdaptor(std::move(CGPM)));
     // Add module-level opt passes below
     MPM.addPass(functioninline::FunctionInlinePass());
+    MPM.addPass(llvm::GlobalDCEPass());
     MPM.addPass(heap2stack::Heap2StackPass());
     MPM.addPass(oracle::OraclePass());
     MPM.addPass(
