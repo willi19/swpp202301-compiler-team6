@@ -63,7 +63,6 @@ optimizeIR(std::unique_ptr<llvm::Module> &&__M,
     // FPM.addPass(llvm::createFunctionToLoopPassAdaptor(loop2sum::Loop2SumPass()));
     FPM.addPass(branchpredict::BranchPredictPass());
     FPM.addPass(phierase::PhierasePass());
-    FPM.addPass(load2aload::Load2AloadPass());
 
     CGPM.addPass(llvm::createCGSCCToFunctionPassAdaptor(std::move(FPM)));
     // Add CGSCC-level opt passes below
@@ -72,12 +71,16 @@ optimizeIR(std::unique_ptr<llvm::Module> &&__M,
     // Add module-level opt passes below
     MPM.addPass(functioninline::FunctionInlinePass());
     MPM.addPass(heap2stack::Heap2StackPass());
-    MPM.addPass(llvm::VerifierPass());
     MPM.addPass(oracle::OraclePass());
-    FPM.addPass(incrdecr::IncrDecrPass());
+    MPM.addPass(
+        llvm::createModuleToFunctionPassAdaptor(load2aload::Load2AloadPass()));
+    MPM.addPass(
+        llvm::createModuleToFunctionPassAdaptor(incrdecr::IncrDecrPass()));
     MPM.addPass(llvm::createModuleToFunctionPassAdaptor(
         intrinsic_elim::IntrinsicEliminatePass()));
     MPM.addPass(removefree::RemoveFreePass());
+
+    MPM.addPass(llvm::VerifierPass());
 
     MPM.run(*__M, __MAM);
 

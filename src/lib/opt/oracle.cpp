@@ -30,15 +30,24 @@ int getInstCount(Loop *L) {
     for (auto &I : *BB)
       Count++;
   }
-
   return Count;
 }
 
 bool isEligibleForOracle(Loop *L) {
-  int MemAccessCount = 0;
-  for (auto *BB : L->blocks())
-    MemAccessCount += getMemAccessCount(BB);
-  return getInstCount(L) < MaxOracleInstCount && MemAccessCount > 0;
+  bool HasCall = false;
+  bool HasMemAccess = false;
+  int InstCount = 0;
+  for (auto *BB: L->blocks()) {
+    for (auto &I: *BB) {
+      InstCount++;
+      if (isa<CallInst>(&I))
+        HasCall = true;
+      else if (isa<LoadInst>(&I) || isa<StoreInst>(&I))
+        HasMemAccess = true;
+    }
+  }
+
+  return !HasCall && InstCount < MaxOracleInstCount && HasMemAccess;
 }
 } // namespace
 
