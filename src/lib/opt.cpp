@@ -11,6 +11,7 @@
 #include "opt/oracle.h"
 #include "opt/phierase.h"
 #include "opt/removefree.h"
+#include "opt/reordermem.h"
 #include "print_ir.h"
 
 #include "llvm/IR/PassManager.h"
@@ -84,7 +85,9 @@ optimizeIR(std::unique_ptr<llvm::Module> &&__M,
 
     // For post-oracle optimizations
     llvm::FunctionPassManager FPM3;
-
+    FPM3.addPass(reordermem::ReorderMemPass());
+    FPM3.addPass(llvm::GVNPass());
+    
     // Produces intrinsic functions, must be after oracle
     FPM3.addPass(load2aload::Load2AloadPass());
     FPM3.addPass(incrdecr::IncrDecrPass());
