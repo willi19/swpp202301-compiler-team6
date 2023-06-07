@@ -15,7 +15,7 @@ using namespace llvm;
 namespace {
 bool isAloadSWPPIntrinsic(Instruction *I) {
   if (auto *CI = dyn_cast<CallInst>(I)) {
-    auto N = CI->getName();
+    auto N = CI->getCalledFunction()->getName();
     return N == "aload_i8" || N == "aload_i16" || N == "aload_i32" ||
            N == "aload_i64";
   }
@@ -24,7 +24,7 @@ bool isAloadSWPPIntrinsic(Instruction *I) {
 
 bool isSumSWPPIntrinsic(Instruction *I) {
   if (auto *CI = dyn_cast<CallInst>(I)) {
-    auto N = CI->getName();
+    auto N = CI->getCalledFunction()->getName();
     return N == "int_sum_i1" || N == "int_sum_i8" || N == "int_sum_i16" ||
            N == "int_sum_i32" || N == "int_sum_i64";
   }
@@ -33,7 +33,7 @@ bool isSumSWPPIntrinsic(Instruction *I) {
 
 bool isIncrDecrSWPPIntrinsic(Instruction *I) {
   if (auto *CI = dyn_cast<CallInst>(I)) {
-    auto N = CI->getName();
+    auto N = CI->getCalledFunction()->getName();
     return N == "incr_i1" || N == "incr_i8" || N == "incr_i16" ||
            N == "incr_i32" || N == "incr_i64" || N == "decr_i1" ||
            N == "decr_i8" || N == "decr_i16" || N == "decr_i32" ||
@@ -44,7 +44,7 @@ bool isIncrDecrSWPPIntrinsic(Instruction *I) {
 
 bool isAssertSWPPIntrinsic(Instruction *I) {
   if (auto *CI = dyn_cast<CallInst>(I)) {
-    auto N = CI->getName();
+    auto N = CI->getCalledFunction()->getName();
     return N == "assert_eq_i1" || N == "assert_eq_i8" || N == "assert_eq_i16" ||
            N == "assert_eq_i32" || N == "assert_eq_i64";
   }

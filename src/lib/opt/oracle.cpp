@@ -14,6 +14,66 @@ using namespace std;
 namespace {
 const int MaxOracleInstCount = 45;
 
+bool isAloadSWPPIntrinsic(Instruction *I) {
+  if (auto *CI = dyn_cast<CallInst>(I)) {
+    auto N = CI->getCalledFunction()->getName();
+    return N == "aload_i8" || N == "aload_i16" || N == "aload_i32" ||
+           N == "aload_i64";
+  }
+  return false;
+}
+
+bool isSumSWPPIntrinsic(Instruction *I) {
+  if (auto *CI = dyn_cast<CallInst>(I)) {
+    auto N = CI->getCalledFunction()->getName();
+    return N == "int_sum_i1" || N == "int_sum_i8" || N == "int_sum_i16" ||
+           N == "int_sum_i32" || N == "int_sum_i64";
+  }
+  return false;
+}
+
+bool isIncrDecrSWPPIntrinsic(Instruction *I) {
+  if (auto *CI = dyn_cast<CallInst>(I)) {
+    auto N = CI->getCalledFunction()->getName();
+    return N == "incr_i1" || N == "incr_i8" || N == "incr_i16" ||
+           N == "incr_i32" || N == "incr_i64" || N == "decr_i1" ||
+           N == "decr_i8" || N == "decr_i16" || N == "decr_i32" ||
+           N == "decr_i64";
+  }
+  return false;
+}
+
+bool isAssertSWPPIntrinsic(Instruction *I) {
+  if (auto *CI = dyn_cast<CallInst>(I)) {
+    auto N = CI->getCalledFunction()->getName();
+    return N == "assert_eq_i1" || N == "assert_eq_i8" || N == "assert_eq_i16" ||
+           N == "assert_eq_i32" || N == "assert_eq_i64";
+  }
+  return false;
+}
+
+bool isMallocSWPPIntrinsic(Instruction *I) {
+  if (auto *CI = dyn_cast<CallInst>(I)) {
+    auto N = CI->getCalledFunction()->getName();
+    return N == "malloc";
+  }
+  return false;
+}
+
+bool isFreeSWPPIntrinsic(Instruction *I) {
+  if (auto *CI = dyn_cast<CallInst>(I)) {
+    auto N = CI->getCalledFunction()->getName();
+    return N == "free";
+  }
+  return false;
+}
+
+bool isSWPPIntrinsic(Instruction *I) {
+  return isAloadSWPPIntrinsic(I) || isIncrDecrSWPPIntrinsic(I) ||
+         isAssertSWPPIntrinsic(I) || isMallocSWPPIntrinsic(I) ||
+         isFreeSWPPIntrinsic(I);
+}
+
 int getMemAccessCount(BasicBlock *BB) {
   int Count = 0;
   for (auto &I : *BB) {
@@ -40,7 +100,7 @@ bool isEligibleForOracle(Loop *L) {
   for (auto *BB: L->blocks()) {
     for (auto &I: *BB) {
       InstCount++;
-      if (isa<CallInst>(&I))
+      if (isa<CallInst>(&I) && !isSWPPIntrinsic(&I))
         HasCall = true;
       else if (isa<LoadInst>(&I) || isa<StoreInst>(&I))
         HasMemAccess = true;
