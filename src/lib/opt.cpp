@@ -2,6 +2,7 @@
 
 #include "../static_error.h"
 #include "opt/arithmeticpass.h"
+#include "opt/add2sum.h"
 #include "opt/branchpredict.h"
 #include "opt/functioninline.h"
 #include "opt/heap2stack.h"

@@ -43,6 +43,15 @@ PreservedAnalyses Add2SumPass::run(Function &F, FunctionAnalysisManager &FAM) {
           break;
         Value *CurValue = Candidate[i];
 
+        // Candidate must be deprecated if Value is constant 0.
+        if (ConstantInt *Zero = dyn_cast<ConstantInt>(CurValue)) {
+          if (Zero->isZero()) {
+            Candidate.erase(Candidate.begin() + i);
+            i--;
+            continue;
+          }
+        }
+
         // The candidate value can be classified as,
         // 1. Newborn / 2. Untrackable / 3. Propagate
         // Newborn Value: value created within the BB not by 'add'.
@@ -95,7 +104,7 @@ PreservedAnalyses Add2SumPass::run(Function &F, FunctionAnalysisManager &FAM) {
         }
       }
 
-      if (Candidate.size() < 3)
+      if (Candidate.size() < 4)
         continue;
       ReplaceInst.push_back(I);
       Summands.push_back(Candidate);
