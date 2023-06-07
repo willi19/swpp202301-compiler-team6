@@ -102,12 +102,13 @@ add_opt_pass(removefree removefree.cpp)
 add_opt_pass(phierase phierase.cpp)
 add_opt_pass(Add2SumPass add2sum.cpp)
 add_opt_pass(reordermem reordermem.cpp)
+add_opt_pass(gv2alloca gv2alloca.cpp)
 
 # /================== DO NOT EDIT BELOW ==================/
 add_library(SCOpt ${SRC_DIR}/lib/opt.cpp)
 target_include_directories(SCOpt PRIVATE ${LLVM_INCLUDE_DIRS})
 llvm_map_components_to_libnames(opt_llvm_libs analysis passes transformutils scalaropts instcombine ipo)
-target_link_libraries(SCOpt PRIVATE SCPrintIR OptPasses ${opt_llvm_libs})
+target_link_libraries(SCOpt PRIVATE SCPrintIR SCBackendConstExprElimPass OptPasses ${opt_llvm_libs})
 
 set(PROJECT_LIB "SComp")
 add_library(${PROJECT_LIB} ${SRC_DIR}/lib.cpp)

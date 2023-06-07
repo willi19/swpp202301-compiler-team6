@@ -1,10 +1,12 @@
 #include "opt.h"
 
 #include "../static_error.h"
+#include "backend/const_expr_eliminate.h"
 #include "opt/arithmeticpass.h"
 #include "opt/add2sum.h"
 #include "opt/branchpredict.h"
 #include "opt/functioninline.h"
+#include "opt/gv2alloca.h"
 #include "opt/heap2stack.h"
 #include "opt/incrdecr.h"
 #include "opt/intrinsic_eliminate.h"
@@ -15,11 +17,14 @@
 #include "opt/reordermem.h"
 #include "print_ir.h"
 
+#include "llvm/Analysis/CGSCCPassManager.h"
 #include "llvm/IR/PassManager.h"
 #include "llvm/IR/Verifier.h"
+#include "llvm/Transforms/IPO/ArgumentPromotion.h"
 #include "llvm/Transforms/IPO/GlobalDCE.h"
 #include "llvm/Transforms/InstCombine/InstCombine.h"
 #include "llvm/Transforms/Scalar/GVN.h"
+#include "llvm/Transforms/Scalar/SROA.h"
 #include "llvm/Transforms/Scalar/SimplifyCFG.h"
 #include "llvm/Transforms/Scalar/TailRecursionElimination.h"
 
@@ -60,8 +65,13 @@ optimizeIR(std::unique_ptr<llvm::Module> &&__M,
 
     MPM.addPass(llvm::createModuleToFunctionPassAdaptor(std::move(FPM1)));
 
+    // Required for GV2Alloca to not be stuck by constant expressions
+    MPM.addPass(backend::ce_elim::ConstExprEliminatePass());
+    MPM.addPass(gv2alloca::GV2AllocaPass());
     MPM.addPass(functioninline::FunctionInlinePass());
     MPM.addPass(llvm::GlobalDCEPass());
+    MPM.addPass(llvm::createModuleToFunctionPassAdaptor(SROAPass()));
+    MPM.addPass(llvm::createModuleToPostOrderCGSCCPassAdaptor(llvm::ArgumentPromotionPass()));
 
     // For most-optimizations
     llvm::FunctionPassManager FPM2;
