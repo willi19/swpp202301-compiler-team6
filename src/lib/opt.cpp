@@ -90,7 +90,7 @@ optimizeIR(std::unique_ptr<llvm::Module> &&__M,
     FPM3.addPass(incrdecr::IncrDecrPass());
     // Just to be safe
     FPM3.addPass(intrinsic_elim::IntrinsicEliminatePass());
-    FPM3.addPass(phierase::PhierasePass());
+    FPM3.addPass(phierase::PHIErasePass());
     MPM.addPass(llvm::createModuleToFunctionPassAdaptor(std::move(FPM3)));
 
     MPM.addPass(removefree::RemoveFreePass());
