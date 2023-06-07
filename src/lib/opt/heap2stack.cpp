@@ -163,6 +163,7 @@ PreservedAnalyses Heap2StackPass::run(Module &M, ModuleAnalysisManager &MAM) {
     CI->eraseFromParent();
   }
 
+  FAM.invalidate(*MainFn, PreservedAnalyses::none());
   auto &MainDT = FAM.getResult<DominatorTreeAnalysis>(*MainFn);
   PromoteMemToReg({NextAllocPtr, LeftSizePtr}, MainDT);
 
