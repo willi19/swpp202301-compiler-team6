@@ -560,7 +560,7 @@ PreservedAnalyses Loop2SumPass::run(Loop &L, LoopAnalysisManager &LAM,
   // Satisfy loop structure: set new L->Latch Block as Vectorized
   // L.setLoopLatch(Vectorized);
 
-  errs() << *M;
+  // errs() << *M;
 
 
   return PreservedAnalyses::none();

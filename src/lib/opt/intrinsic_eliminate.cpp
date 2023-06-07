@@ -14,7 +14,7 @@ IntrinsicEliminatePass::run(llvm::Function &F,
   bool Changed = false;
   for (auto &BB : F) {
     for (auto I = BB.begin(), E = BB.end(); I != E; ++I) {
-      if (auto *II = dyn_cast<IntrinsicInst>(&*I)) {
+      if (auto *II = dyn_cast<IntrinsicInst>(I)) {
         Changed = true;
         IRBuilder<> Builder(F.getContext());
         switch (II->getIntrinsicID()) {
@@ -56,14 +56,14 @@ IntrinsicEliminatePass::run(llvm::Function &F,
         }
         case Intrinsic::lifetime_start:
         case Intrinsic::lifetime_end: {
-          I = II->eraseFromParent();
-          --I;
           break;
         }
         default:
           llvm_unreachable("Found unhandled intrinsic instruction");
           break;
         }
+        I = II->eraseFromParent();
+        --I;
       }
     }
   }

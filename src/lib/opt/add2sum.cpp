@@ -175,8 +175,6 @@ PreservedAnalyses Add2SumPass::run(Function &F, FunctionAnalysisManager &FAM) {
       I->eraseFromParent();
     }
   }
-  // Module *M = F.getParent();
-  // errs() << *M;
   return Changed ? PreservedAnalyses::none() : PreservedAnalyses::all();
 }
 extern "C" ::llvm::PassPluginLibraryInfo llvmGetPassPluginInfo() {

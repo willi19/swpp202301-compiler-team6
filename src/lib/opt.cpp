@@ -2,7 +2,6 @@
 
 #include "../static_error.h"
 #include "opt/arithmeticpass.h"
-
 #include "opt/add2sum.h"
 #include "opt/branchpredict.h"
 #include "opt/functioninline.h"
@@ -10,22 +9,19 @@
 #include "opt/incrdecr.h"
 #include "opt/intrinsic_eliminate.h"
 #include "opt/load2aload.h"
-#include "opt/loop2sum.h"
 #include "opt/oracle.h"
 #include "opt/phierase.h"
 #include "opt/removefree.h"
-
+#include "opt/reordermem.h"
 #include "print_ir.h"
 
-#include "llvm/Analysis/CGSCCPassManager.h"
+#include "llvm/IR/PassManager.h"
 #include "llvm/IR/Verifier.h"
+#include "llvm/Transforms/IPO/GlobalDCE.h"
 #include "llvm/Transforms/InstCombine/InstCombine.h"
-#include "llvm/Transforms/Scalar/ADCE.h"
 #include "llvm/Transforms/Scalar/GVN.h"
-#include "llvm/Transforms/Scalar/LoopPassManager.h"
 #include "llvm/Transforms/Scalar/SimplifyCFG.h"
 #include "llvm/Transforms/Scalar/TailRecursionElimination.h"
-#include "llvm/Transforms/Utils/Mem2Reg.h"
 
 using namespace std::string_literals;
 
@@ -40,49 +36,67 @@ optimizeIR(std::unique_ptr<llvm::Module> &&__M,
   using RetType = Result<std::unique_ptr<llvm::Module>, OptInternalError>;
 
   try {
-    llvm::LoopPassManager LPM;
-    llvm::FunctionPassManager FPM;
-    llvm::CGSCCPassManager CGPM;
     llvm::ModulePassManager MPM;
 
-    // Add loop-level opt passes below
-    FPM.addPass(llvm::SimplifyCFGPass());
-    //    FPM.addPass(createFunctionToLoopPassAdaptor(loop2sum::Loop2SumPass()));
-    FPM.addPass(llvm::createFunctionToLoopPassAdaptor(std::move(LPM)));
-    // Add function-level opt passes below
-    //    FPM.addPass(llvm::SimplifyCFGPass());
-    //    FPM.addPass(llvm::PromotePass());
-    //    FPM.addPass(llvm::InstCombinePass());
-    //    FPM.addPass(llvm::GVNPass());
-    //    FPM.addPass(llvm::SimplifyCFGPass());
-    //    FPM.addPass(llvm::InstCombinePass());
-    //    FPM.addPass(llvm::TailCallElimPass());
-    //    FPM.addPass(llvm::GVNPass());
+    // For function simplification
+    llvm::FunctionPassManager FPM1;
 
-    //    FPM.addPass(intrinsic_elim::IntrinsicEliminatePass());
-    //    FPM.addPass(arithmeticpass::ArithmeticPass());
-    // FPM.addPass(llvm::createFunctionToLoopPassAdaptor(loop2sum::Loop2SumPass()));
-    FPM.addPass(branchpredict::BranchPredictPass());
-//    FPM.addPass(phierase::PhierasePass());
+    FPM1.addPass(llvm::SimplifyCFGPass());
+    FPM1.addPass(llvm::InstCombinePass());
 
-    CGPM.addPass(llvm::createCGSCCToFunctionPassAdaptor(std::move(FPM)));
-    // Add CGSCC-level opt passes below
+    // For unknown reasons, running GVN both before and after TCE is beneficial
+    FPM1.addPass(llvm::GVNPass());
+    FPM1.addPass(llvm::SimplifyCFGPass());
+    FPM1.addPass(llvm::InstCombinePass());
+    FPM1.addPass(llvm::TailCallElimPass());
+    // TCE produces more GVN opportunities
+    FPM1.addPass(llvm::GVNPass());
+    FPM1.addPass(llvm::SimplifyCFGPass());
+    FPM1.addPass(llvm::InstCombinePass());
 
-    MPM.addPass(llvm::createModuleToPostOrderCGSCCPassAdaptor(std::move(CGPM)));
-    // Add module-level opt passes below
+    FPM1.addPass(intrinsic_elim::IntrinsicEliminatePass());
+    FPM1.addPass(arithmeticpass::ArithmeticPass());
+    FPM1.addPass(branchpredict::BranchPredictPass());
 
-//    MPM.addPass(functioninline::FunctionInlinePass());
-//    MPM.addPass(llvm::GlobalDCEPass());
+    MPM.addPass(llvm::createModuleToFunctionPassAdaptor(std::move(FPM1)));
+
+    MPM.addPass(functioninline::FunctionInlinePass());
+    MPM.addPass(llvm::GlobalDCEPass());
+
+    // For most-optimizations
+    llvm::FunctionPassManager FPM2;
+
+    // Inlining produces more GVN opportunities
+    // For unknown reasons, SimplifyCFG hits hard in this stage
+    // FPM2.addPass(llvm::SimplifyCFGPass());
+    FPM2.addPass(llvm::InstCombinePass());
+    FPM2.addPass(llvm::GVNPass());
+    // FPM2.addPass(llvm::SimplifyCFGPass());
+    FPM2.addPass(llvm::InstCombinePass());
+
+    // Required for oracle pass to work well
+    FPM2.addPass(intrinsic_elim::IntrinsicEliminatePass());
+    FPM2.addPass(arithmeticpass::ArithmeticPass());
+    FPM2.addPass(branchpredict::BranchPredictPass());
+
+    MPM.addPass(llvm::createModuleToFunctionPassAdaptor(std::move(FPM2)));
+
     MPM.addPass(heap2stack::Heap2StackPass());
-//    MPM.addPass(oracle::OraclePass());
-    MPM.addPass(
-        llvm::createModuleToFunctionPassAdaptor(load2aload::Load2AloadPass()));
-    MPM.addPass(
-        llvm::createModuleToFunctionPassAdaptor(incrdecr::IncrDecrPass()));
-    MPM.addPass(
-        llvm::createModuleToFunctionPassAdaptor(add2sum::Add2SumPass()));
-    MPM.addPass(llvm::createModuleToFunctionPassAdaptor(
-        intrinsic_elim::IntrinsicEliminatePass()));
+    MPM.addPass(oracle::OraclePass());
+
+    // For post-oracle optimizations
+    llvm::FunctionPassManager FPM3;
+    FPM3.addPass(reordermem::ReorderMemPass());
+    FPM3.addPass(llvm::GVNPass());
+    
+    // Produces intrinsic functions, must be after oracle
+    FPM3.addPass(load2aload::Load2AloadPass());
+    FPM3.addPass(incrdecr::IncrDecrPass());
+    // Just to be safe
+    FPM3.addPass(intrinsic_elim::IntrinsicEliminatePass());
+    FPM3.addPass(phierase::PHIErasePass());
+    MPM.addPass(llvm::createModuleToFunctionPassAdaptor(std::move(FPM3)));
+
     MPM.addPass(removefree::RemoveFreePass());
 
     MPM.addPass(llvm::VerifierPass());

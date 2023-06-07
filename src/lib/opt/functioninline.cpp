@@ -103,6 +103,7 @@ PreservedAnalyses FunctionInlinePass::run(Module &M,
   for (auto &F : M) {
     if (!F.isDeclaration() && F.getName() != "main") {
       F.setLinkage(GlobalValue::LinkageTypes::PrivateLinkage);
+      Changed = true;
     }
   }
 

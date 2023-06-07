@@ -17,7 +17,7 @@ using namespace llvm;
 using namespace std;
 
 namespace sc::opt::phierase {
-PreservedAnalyses PhierasePass::run(Function &F, FunctionAnalysisManager &FAM) {
+PreservedAnalyses PHIErasePass::run(Function &F, FunctionAnalysisManager &FAM) {
   vector<BasicBlock *> cands;
   for (auto &BB : F) {
     if (&(*BB.begin()) == BB.getFirstNonPHI() ||
@@ -81,7 +81,7 @@ extern "C" ::llvm::PassPluginLibraryInfo llvmGetPassPluginInfo() {
                 [](StringRef Name, FunctionPassManager &FPM,
                    ArrayRef<PassBuilder::PipelineElement>) {
                   if (Name == "phierase") {
-                    FPM.addPass(PhierasePass());
+                    FPM.addPass(PHIErasePass());
                     return true;
                   }
                   return false;

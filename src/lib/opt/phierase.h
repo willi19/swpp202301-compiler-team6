@@ -4,7 +4,7 @@
 #include "llvm/IR/PassManager.h"
 
 namespace sc::opt::phierase {
-class PhierasePass : public llvm::PassInfoMixin<PhierasePass> {
+class PHIErasePass : public llvm::PassInfoMixin<PHIErasePass> {
 public:
   llvm::PreservedAnalyses run(llvm::Function &, llvm::FunctionAnalysisManager &);
 };
