@@ -6,6 +6,7 @@
 #include "llvm/IR/Dominators.h"
 #include "llvm/Passes/PassBuilder.h"
 #include "llvm/Passes/PassPlugin.h"
+#include "llvm/Support/ErrorHandling.h"
 #include "llvm/Transforms/Utils/CodeExtractor.h"
 
 using namespace llvm;
@@ -171,6 +172,56 @@ PreservedAnalyses OraclePass::run(Module &M, ModuleAnalysisManager &MAM) {
   Function *OracleF = Extractor.extractCodeRegion(CEAC, Inputs, Outputs);
   if (!OracleF)
     return PreservedAnalyses::all();
+
+  // Remove potential i1* values
+
+  for (auto &Arg: OracleF->args()) {
+    auto *ArgTy = Arg.getType();
+    if (ArgTy == Type::getInt1PtrTy(C)) {
+      for (auto *U: make_early_inc_range(Arg.users())) {
+        if (auto *SI = dyn_cast<StoreInst>(U)) {
+          auto *NewValueOperand = CastInst::CreateIntegerCast(SI->getValueOperand(), Type::getInt8Ty(C), true, "", SI);
+          auto *NewPointerOperand = CastInst::CreatePointerCast(SI->getPointerOperand(), Type::getInt8PtrTy(C), "", SI);
+          auto *NewSI = new StoreInst(NewValueOperand, NewPointerOperand, SI);
+          SI->eraseFromParent();
+        } else if (auto *LI = dyn_cast<LoadInst>(U)) {
+          auto *NewPointerOperand = CastInst::CreatePointerCast(LI->getPointerOperand(), Type::getInt8PtrTy(C), "", LI);
+          auto *NewLI = new LoadInst(Type::getInt8Ty(C), NewPointerOperand, "", LI);
+          auto *CastedNewLI = CastInst::CreateIntegerCast(NewLI, Type::getInt1Ty(C), true, "", LI);
+          LI->replaceAllUsesWith(CastedNewLI);
+          LI->eraseFromParent();
+        } else {
+          llvm_unreachable("Unknown use of i1* argument.");
+        }
+      }
+    }
+  }
+
+  for (auto *U: OracleF->users()) {
+    assert(isa<CallInst>(U) && "OracleF can only have call uses.");
+    auto *CI = cast<CallInst>(U);
+    for (auto &Arg: CI->args()) {
+      if (auto *AI = dyn_cast<AllocaInst>(Arg)) {
+        if (AI->getAllocatedType() == Type::getInt1Ty(C)) {
+          AI->setAllocatedType(Type::getInt8Ty(C));
+          for (auto *AIU: make_early_inc_range(AI->users())) {
+            if (auto *SI = dyn_cast<StoreInst>(AIU)) {
+              auto *NewValueOperand = CastInst::CreateIntegerCast(SI->getValueOperand(), Type::getInt8Ty(C), true, "", SI);
+              auto *NewPointerOperand = CastInst::CreatePointerCast(SI->getPointerOperand(), Type::getInt8PtrTy(C), "", SI);
+              auto *NewSI = new StoreInst(NewValueOperand, NewPointerOperand, SI);
+              SI->eraseFromParent();
+            } else if (auto *LI = dyn_cast<LoadInst>(AIU)) {
+              auto *NewPointerOperand = CastInst::CreatePointerCast(LI->getPointerOperand(), Type::getInt8PtrTy(C), "", LI);
+              auto *NewLI = new LoadInst(Type::getInt8Ty(C), NewPointerOperand, "", LI);
+              auto *CastedNewLI = CastInst::CreateIntegerCast(NewLI, Type::getInt1Ty(C), true, "", LI);
+              LI->replaceAllUsesWith(CastedNewLI);
+              LI->eraseFromParent();
+            }
+          }
+        }
+      }
+    }
+  }
 
   // TODO: bail out if Outputs.size() > 16
   OracleF->setName("oracle");
